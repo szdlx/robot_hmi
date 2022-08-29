@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>road_type_icon/earth_road.jpg</file>
+        <file>road_type_icon/ice_road.jpg</file>
+        <file>road_type_icon/sandstone_road.jpg</file>
+    </qresource>
+</RCC>

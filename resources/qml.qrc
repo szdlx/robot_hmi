@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/qosm.qml</file>
+        <file>qml/marker.qml</file>
+        <file>qml/virtual_joystick.qml</file>
+    </qresource>
+</RCC>
