@@ -1,39 +1,59 @@
-# ros_gui_ackerman
+# 多场景ROS人机交互界面
 
-#### 介绍
-{**以下是 Gitee 平台说明，您可以替换此简介**
-Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+## 安装依赖
 
-#### 软件架构
-软件架构说明
+```bash
+sudo apt-get install libqt5location5 libqt5multimedia5 libqt5quickcontrols2-5
+```
 
+## 运行
 
-#### 安装教程
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+```bash
+rosrun cyrobot_monitor cyrobot_monitor 
+```
 
 
-#### 特技
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+### 开机主界面
+
+![](https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/%E5%9B%BE%E7%89%871.png?raw=true)
+
+### 选择控制平台
+
+对于阿克曼消息类型，自动切换到摇杆控制，对应差速消息类型，切换到全向控制
+
+<img src="https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/%E5%9B%BE%E7%89%876.png?raw=true" style="zoom: 80%;" />
+
+<img src="https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/%E5%9B%BE%E7%89%872.png?raw=true" style="zoom: 80%;" />
+
+
+
+### 图像窗口
+
+图像显示窗口，可以右键选择显示的图像数量
+
+![](https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/%E5%9B%BE%E5%83%8F%E6%98%BE%E7%A4%BA%E7%AA%97%E5%8F%A3.png?raw=true)
+
+在此设置图像话题
+
+![](https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/%E5%9B%BE%E5%83%8F%E8%AF%9D%E9%A2%98.png?raw=true)
+
+### rviz
+
+集成了rviz模块
+
+![](https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/rviz.png?raw=true)
+
+###  数据显示模块
+
+需要设置对应的话题与参考坐标系
+
+![](https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/%E5%9B%BE%E7%89%878.png?raw=true)
+
+![](https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/%E5%9B%BE%E7%89%877.png?raw=true)
+
+### 地图
+
+采用qml写的地图，地图来源与openstreetmap
+
+![](https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/%E5%9B%BE%E7%89%879.png?raw=true)
