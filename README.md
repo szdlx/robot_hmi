@@ -4,6 +4,14 @@
 
 主框架来源于其他[开源项目](https://github.com/chengyangkj/Ros_Qt5_Gui_App/tree/rviz_tree)，在此基础上修复问题，添加自己的功能
 
+## 源码下载
+
+```bash
+git clone -b robot_qt_need git@github.com:lrm2017/robot_hmi.git
+```
+
+
+
 ## 安装依赖
 
 ```bash
