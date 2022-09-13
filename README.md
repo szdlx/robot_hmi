@@ -62,4 +62,4 @@ rosrun cyrobot_monitor cyrobot_monitor
 
 采用qml写的地图，地图来源与openstreetmap
 
-![](%E5%9B%BE%E7%89%879.png)
+![](https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/%E5%9B%BE%E7%89%879.png?raw=true)
