@@ -1,6 +1,8 @@
 # 多场景ROS人机交互界面
 
+## 感谢
 
+主框架来源于其他[开源项目](https://github.com/chengyangkj/Ros_Qt5_Gui_App/tree/rviz_tree)，在此基础上修复问题，添加自己的功能
 
 ## 安装依赖
 
