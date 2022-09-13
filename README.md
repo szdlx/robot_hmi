@@ -38,7 +38,7 @@ rosrun cyrobot_monitor cyrobot_monitor
 
 集成了rviz模块
 
-![](https://github.com/lrm2017/robot_hmi/blob/robot_qt_need/image/rviz.png?raw=true)
+![](rviz%E6%98%BE%E7%A4%BA2.png)
 
 ###  数据显示模块
 
