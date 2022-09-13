@@ -14,7 +14,7 @@
    <string>rviz</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="../resources/images.qrc">
+   <iconset>
     <normaloff>:/images/robot.png</normaloff>:/images/robot.png</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -86,7 +86,7 @@
              <string>取消</string>
             </property>
             <property name="icon">
-             <iconset resource="../resources/images.qrc">
+             <iconset>
               <normaloff>:/images/false.png</normaloff>:/images/false.png</iconset>
             </property>
            </widget>
@@ -97,7 +97,7 @@
              <string>确定</string>
             </property>
             <property name="icon">
-             <iconset resource="../resources/images.qrc">
+             <iconset>
               <normaloff>:/images/ok.png</normaloff>:/images/ok.png</iconset>
             </property>
            </widget>
@@ -118,8 +118,6 @@
   <tabstop>pushButton_cancel</tabstop>
   <tabstop>pushButton_ok</tabstop>
  </tabstops>
- <resources>
-  <include location="../resources/images.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

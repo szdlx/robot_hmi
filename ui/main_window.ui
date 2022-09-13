@@ -17,7 +17,7 @@
    <string>ROS人机交互软件</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">
+   <iconset>
     <normaloff>:/images/robot.png</normaloff>:/images/robot.png</iconset>
   </property>
   <property name="locale">
@@ -47,7 +47,7 @@
            <string/>
           </property>
           <property name="pixmap">
-           <pixmap resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">:/images/robot2.png</pixmap>
+           <pixmap>:/images/robot2.png</pixmap>
           </property>
          </widget>
         </item>
@@ -86,7 +86,7 @@
            <string/>
           </property>
           <property name="pixmap">
-           <pixmap resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">:/images/offline.png</pixmap>
+           <pixmap>:/images/offline.png</pixmap>
           </property>
          </widget>
         </item>
@@ -165,7 +165,7 @@
            <string/>
           </property>
           <property name="pixmap">
-           <pixmap resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">:/images/power.png</pixmap>
+           <pixmap>:/images/power.png</pixmap>
           </property>
          </widget>
         </item>
@@ -209,7 +209,7 @@ QProgressBar {
            <string/>
           </property>
           <property name="pixmap">
-           <pixmap resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">:/images/power-v.png</pixmap>
+           <pixmap>:/images/power-v.png</pixmap>
           </property>
          </widget>
         </item>
@@ -254,7 +254,7 @@ QProgressBar {
            <locale language="English" country="Australia"/>
           </property>
           <property name="currentIndex">
-           <number>3</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_status">
            <attribute name="title">
@@ -315,7 +315,7 @@ QProgressBar {
                           <string/>
                          </property>
                          <property name="pixmap">
-                          <pixmap resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">:/images/speed.png</pixmap>
+                          <pixmap>:/images/speed.png</pixmap>
                          </property>
                         </widget>
                        </item>
@@ -387,7 +387,7 @@ QProgressBar {
                           <string/>
                          </property>
                          <property name="pixmap">
-                          <pixmap resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">:/images/speed.png</pixmap>
+                          <pixmap>:/images/speed.png</pixmap>
                          </property>
                         </widget>
                        </item>
@@ -533,7 +533,7 @@ QProgressBar {
                    <string>Move Camera</string>
                   </property>
                   <property name="icon">
-                   <iconset resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">
+                   <iconset>
                     <normaloff>:/images/rotate_cam.svg</normaloff>:/images/rotate_cam.svg</iconset>
                   </property>
                  </widget>
@@ -550,7 +550,7 @@ QProgressBar {
                    <string>Select</string>
                   </property>
                   <property name="icon">
-                   <iconset resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">
+                   <iconset>
                     <normaloff>:/images/classes/Select.png</normaloff>:/images/classes/Select.png</iconset>
                   </property>
                  </widget>
@@ -573,7 +573,7 @@ QProgressBar {
                    <string>2D Pose Estimate</string>
                   </property>
                   <property name="icon">
-                   <iconset resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">
+                   <iconset>
                     <normaloff>:/images/classes/SetInitialPose.png</normaloff>:/images/classes/SetInitialPose.png</iconset>
                   </property>
                  </widget>
@@ -590,7 +590,7 @@ QProgressBar {
                    <string>2D Nav Goal</string>
                   </property>
                   <property name="icon">
-                   <iconset resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">
+                   <iconset>
                     <normaloff>:/images/classes/SetGoal.png</normaloff>:/images/classes/SetGoal.png</iconset>
                   </property>
                  </widget>
@@ -613,7 +613,7 @@ QProgressBar {
                    <string>设置返航点</string>
                   </property>
                   <property name="icon">
-                   <iconset resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">
+                   <iconset>
                     <normaloff>:/images/set_return.png</normaloff>:/images/set_return.png</iconset>
                   </property>
                  </widget>
@@ -636,7 +636,7 @@ QProgressBar {
                    <string>返航</string>
                   </property>
                   <property name="icon">
-                   <iconset resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">
+                   <iconset>
                     <normaloff>:/images/return.png</normaloff>:/images/return.png</iconset>
                   </property>
                  </widget>
@@ -755,7 +755,7 @@ QProgressBar {
            <cursorShape>ArrowCursor</cursorShape>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
@@ -905,7 +905,7 @@ QProgressBar {
                     <string>连接</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">
+                    <iconset>
                      <normaloff>:/images/line.png</normaloff>:/images/line.png</iconset>
                    </property>
                   </widget>
@@ -1209,7 +1209,7 @@ QProgressBar {
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Ros_Qt5_Gui_App-simple/resources/images.qrc">:/images/classes/Displays.svg</pixmap>
+                   <pixmap>:/images/classes/Displays.svg</pixmap>
                   </property>
                  </widget>
                 </item>
@@ -1419,7 +1419,6 @@ color:rgb(238, 238, 236);</string>
                  <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
-hr { height: 1px; border-width: 0; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Ubuntu'; font-size:11pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                 </property>
@@ -1905,12 +1904,6 @@ color:rgb(238, 238, 236);</string>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RvizImage</class>
-   <extends>QWidget</extends>
-   <header>rvizpanel.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>RvizPC2Lidar</class>
    <extends>QWidget</extends>
    <header>rvizpanel.h</header>
@@ -1971,6 +1964,12 @@ color:rgb(238, 238, 236);</string>
    <class>PlotRoad</class>
    <extends>QWidget</extends>
    <header>plotpanel.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>RvizImage</class>
+   <extends>QWidget</extends>
+   <header>rvizpanel.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

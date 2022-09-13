@@ -19,7 +19,7 @@
      <item>
       <widget class="QToolBox" name="toolBox">
        <property name="currentIndex">
-        <number>0</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="page">
         <property name="geometry">
@@ -1179,7 +1179,7 @@
           <string>ok</string>
          </property>
          <property name="icon">
-          <iconset resource="../../diff_ros_interface/resources/images.qrc">
+          <iconset>
            <normaloff>:/images/ok.png</normaloff>:/images/ok.png</iconset>
          </property>
         </widget>
@@ -1190,7 +1190,7 @@
           <string>Cancel</string>
          </property>
          <property name="icon">
-          <iconset resource="../../diff_ros_interface/resources/images.qrc">
+          <iconset>
            <normaloff>:/images/false.png</normaloff>:/images/false.png</iconset>
          </property>
         </widget>

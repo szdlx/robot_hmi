@@ -7,7 +7,7 @@ AddTopics::AddTopics(QWidget *parent) :
 {
     ui->setupUi(this);
     initUi();
-    connect(ui->treeWidget,SIGNAL(currentItemChanged(QTreeWidgetItem *, QTreeWidgetItem *)),this,SLOT(treeWidget(QTreeWidgetItem *, QTreeWidgetItem *)));
+    connect(ui->treeWidget,SIGNAL(currentItemChanged(QTreeWidgetItem *, QTreeWidgetItem *)),this,SLOT(slot_curritem_changed(QTreeWidgetItem *, QTreeWidgetItem *)));
 }
 void AddTopics::initUi()
 {
