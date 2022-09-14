@@ -111,7 +111,7 @@ private:
     QPair<float, float> vel;
 
     QProcess *laser_cmd;
-    RvizMapLidar *rmap;
+//    RvizMapLidar *rmap;
     RvizPanel   *rpanel;    
 
     //
@@ -142,6 +142,9 @@ private:
     QVector<QImage> img_vec;   // 批量保存图片
     QTimer *timer;          // record save image timer
 
+    QProcess *launch=NULL;   // gmapping launch;
+
+    bool fullscreen=false;
 
 };
 

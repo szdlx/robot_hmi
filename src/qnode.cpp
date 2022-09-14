@@ -16,6 +16,7 @@
 #include <pluginlib/class_list_macros.h>
 #include <ros/master.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/LaserScan.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -66,6 +67,9 @@ QList<QString> QNode::getTopics(const QString& message_types){
     ros::master::V_TopicInfo topic_info;  // 获取所有的ros话题
     ros::master::getTopics(topic_info);
 
+    pathList.clear();   // path topic
+    mapList.clear();
+    polyList.clear();
     QSet<QString> all_topics;
     for (ros::master::V_TopicInfo::const_iterator it = topic_info.begin(); it != topic_info.end(); it++)
     {
@@ -79,6 +83,13 @@ QList<QString> QNode::getTopics(const QString& message_types){
           QString topic = it->name.c_str();
           topics.append(topic);
       }
+      if(it->datatype=="nav_msgs/Path"){
+          pathList.push_back(it->name);
+      }
+      if(it->datatype=="nav_msgs/OccupancyGrid")
+          mapList.push_back(it->name);
+      if(it->datatype=="geometry_msgs/PolygonStamped")  // robot footprint
+          polyList.push_back(it->name);
     }
     return topics;
 }
@@ -214,14 +225,18 @@ void QNode::init_set(){
     cmd_vel_pub[1]=n.advertise<geometry_msgs::Twist>(ugv[1]+"/cmd_vel",1000);
     goal_pub[0]=n.advertise<geometry_msgs::PoseStamped>(ugv[0]+"/goal",1000);
     goal_pub[1]=n.advertise<geometry_msgs::PoseStamped>(ugv[0]+"/goal",1000);
+    marker_pub[0]=n.advertise<visualization_msgs::Marker>(ugv[0]+"/marker",1000);
+    marker_pub[1]=n.advertise<visualization_msgs::Marker>(ugv[1]+"/marker",1000);
 
     // 利用boost::bind 函数 绑定 额外参数
     power_sub[0] = n.subscribe<ros_four1_msg::four1>(ugv[0]+"four_info",1000,boost::bind(&QNode::power_callback,this, _1, 0));
     power_sub[1] = n.subscribe<ros_four1_msg::four1>(ugv[1]+"four_info",1000,boost::bind(&QNode::power_callback,this,_1, 1));
     odom_sub[0] = n.subscribe<nav_msgs::Odometry>(ugv[0]+"/odom",1000,boost::bind(&QNode::odom_callback,this,_1,0));
     odom_sub[1] = n.subscribe<nav_msgs::Odometry>(ugv[1]+"/odom",1000,boost::bind(&QNode::odom_callback,this,_1,1));
-    gps_sub[0] = n.subscribe<gps_ksxt_msg::GPS_ksxt>(ugv[0]+"gps",1000, boost::bind(&QNode::gps_callback,this,_1,0));
-    gps_sub[1] = n.subscribe<gps_ksxt_msg::GPS_ksxt>(ugv[1]+"gps",1000, boost::bind(&QNode::gps_callback,this,_1,1));
+    gps_sub[0] = n.subscribe<gps_ksxt_msg::GPS_ksxt>(ugv[0]+"/gps",1000, boost::bind(&QNode::gps_callback,this,_1,0));
+    gps_sub[1] = n.subscribe<gps_ksxt_msg::GPS_ksxt>(ugv[1]+"/gps",1000, boost::bind(&QNode::gps_callback,this,_1,1));
+    laser_sub[0] = n.subscribe<sensor_msgs::LaserScan>(ugv[0]+"/base_scan",1000, boost::bind(&QNode::laser_callback, this,_1,0));
+    laser_sub[1] = n.subscribe<sensor_msgs::LaserScan>(ugv[1]+"/base_scan",1000, boost::bind(&QNode::laser_callback, this,_1,1));
 
     start();
 
@@ -251,6 +266,21 @@ void QNode::gps_callback(const gps_ksxt_msg::GPS_ksxtConstPtr &msg, int car){
     emit gps_pos(msg->posqual, msg->headingqual,msg->east, msg->north);
 }
 
+void QNode::laser_callback(const sensor_msgs::LaserScanConstPtr &msg, int car){
+    if(this->car != car) return ;
+    float mindis=msg->range_max;
+    for (auto dis : msg->ranges) {
+        if(dis<=msg->range_min){
+            continue;
+        }
+        if(dis < mindis )
+            mindis = dis;
+    }
+    if(mindis<1.0)
+        emit obs_meet(car);
+//    qDebug()<<"laser min dis " << mindis << endl;
+}
+
 
 void QNode::power_callback(const ros_four1_msg::four1ConstPtr &msg, int car)
 {
@@ -264,8 +294,31 @@ void QNode::power_callback(const ros_four1_msg::four1ConstPtr &msg, int car)
     emit speed_vel(vel,angv);
     emit power_vel(msg->Voltage);
 }
+
+
 void QNode::odom_callback(const nav_msgs::Odometry::ConstPtr &msg, int car)
 {
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "odom";
+    marker.header.stamp = ros::Time();
+//    marker.ns = "my_namespace";
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position= msg->pose.pose.position;
+    marker.pose.orientation = msg->pose.pose.orientation;
+    marker.scale.x = 1;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
+    marker.color.a = 1.0; // Don't forget to set the alpha!
+    marker.color.r = 0.0;
+    marker.color.g = 1.0;
+    marker.color.b = 0.0;
+    //only if using a MESH_RESOURCE marker type:
+//    marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
+    marker_pub[car].publish( marker );
+    emit showMarker("/UGV"+QString::number(car)+"/marker", car);
+
 //    qDebug() << "odom car is " << *car << endl;
     if(car!=this->car){
         return ;
@@ -276,6 +329,7 @@ void QNode::odom_callback(const nav_msgs::Odometry::ConstPtr &msg, int car)
     double roll, pitch, yaw;//定义存储r\p\y的容器
           tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);//进行转换
     emit position(msg->pose.pose.position.x,msg->pose.pose.position.y, yaw);
+
 }
 
 void QNode::set_cmd_vel(float linear,float angular)

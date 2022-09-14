@@ -576,7 +576,7 @@ background-color: transparent;
          <widget class="QWidget" name="rviz_widget" native="true">
           <layout class="QHBoxLayout" name="horizontalLayout_10">
            <item>
-            <layout class="QVBoxLayout" name="verticalLayout_6" stretch="0,1">
+            <layout class="QVBoxLayout" name="verticalLayout_6" stretch="0,0,1">
              <item>
               <widget class="QWidget" name="map_widget" native="true">
                <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -601,17 +601,6 @@ background-color: transparent;
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="refresh_map">
-                  <property name="text">
-                   <string> 刷新</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../resources/images.qrc">
-                    <normaloff>:/images/refresh.png</normaloff>:/images/refresh.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-                <item>
                  <spacer name="horizontalSpacer_6">
                   <property name="orientation">
                    <enum>Qt::Horizontal</enum>
@@ -625,41 +614,91 @@ background-color: transparent;
                  </spacer>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>30</height>
-                   </size>
-                  </property>
+                 <widget class="QPushButton" name="refresh_map">
                   <property name="text">
-                   <string> 建图</string>
+                   <string> 刷新</string>
                   </property>
                   <property name="icon">
                    <iconset resource="../resources/images.qrc">
-                    <normaloff>:/images/scan-laser.png</normaloff>:/images/scan-laser.png</iconset>
+                    <normaloff>:/images/refresh.png</normaloff>:/images/refresh.png</iconset>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="set_goal">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>30</height>
-                   </size>
-                  </property>
+                 <widget class="QPushButton" name="screen_btn">
                   <property name="text">
-                   <string> 导航</string>
+                   <string>全屏</string>
                   </property>
                   <property name="icon">
                    <iconset resource="../resources/images.qrc">
-                    <normaloff>:/images/nav.png</normaloff>:/images/nav.png</iconset>
+                    <normaloff>:/images/fullscren.png</normaloff>:/images/fullscren.png</iconset>
                   </property>
                  </widget>
                 </item>
                </layout>
               </widget>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_11">
+               <item>
+                <widget class="QPushButton" name="gmapping_btn">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>30</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>开始建图</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../resources/images.qrc">
+                   <normaloff>:/images/scan-laser.png</normaloff>:/images/scan-laser.png</iconset>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_8">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QPushButton" name="set_start">
+                 <property name="text">
+                  <string>位姿估计</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../resources/images.qrc">
+                   <normaloff>:/images/classes/SetInitialPose.png</normaloff>:/images/classes/SetInitialPose.png</iconset>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="set_goal">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>30</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string> 导航</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../resources/images.qrc">
+                   <normaloff>:/images/classes/Pose.png</normaloff>:/images/classes/Pose.png</iconset>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
               <widget class="QWidget" name="panel_widget" native="true">
@@ -691,271 +730,299 @@ background-color: transparent;
        </layout>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_6">
-        <item>
-         <layout class="QVBoxLayout" name="vel_layout">
-          <property name="leftMargin">
-           <number>40</number>
-          </property>
-          <property name="topMargin">
-           <number>40</number>
-          </property>
-          <property name="rightMargin">
-           <number>40</number>
-          </property>
-          <property name="bottomMargin">
-           <number>40</number>
-          </property>
-          <item>
-           <widget class="QWidget" name="velControl" native="true">
-            <property name="minimumSize">
-             <size>
-              <width>300</width>
-              <height>300</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>300</width>
-              <height>300</height>
-             </size>
-            </property>
-            <property name="acceptDrops">
-             <bool>true</bool>
-            </property>
-            <property name="autoFillBackground">
-             <bool>false</bool>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color: rgb(250, 250, 250);
+       <widget class="QWidget" name="horcontrolwidget" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <item>
+          <layout class="QVBoxLayout" name="vel_layout">
+           <property name="leftMargin">
+            <number>40</number>
+           </property>
+           <property name="topMargin">
+            <number>40</number>
+           </property>
+           <property name="rightMargin">
+            <number>40</number>
+           </property>
+           <property name="bottomMargin">
+            <number>40</number>
+           </property>
+           <item>
+            <widget class="QWidget" name="velControl" native="true">
+             <property name="minimumSize">
+              <size>
+               <width>300</width>
+               <height>300</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>300</width>
+               <height>300</height>
+              </size>
+             </property>
+             <property name="acceptDrops">
+              <bool>true</bool>
+             </property>
+             <property name="autoFillBackground">
+              <bool>false</bool>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">background-color: rgb(250, 250, 250);
 border-top-color: rgb(250, 250, 250);
 border-right-color: rgb(250, 250, 250);
 border-bottom-color: rgb(250, 250, 250);
 border-left-color: rgb(250, 250, 250);</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="1,1,0,1">
-          <item>
-           <layout class="QVBoxLayout" name="verticalLayout_3">
-            <item>
-             <widget class="QLabel" name="label_19">
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="1,1,0,1">
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_3">
+             <item>
+              <widget class="QLabel" name="label_19">
+               <property name="text">
+                <string>x</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="pos_x">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>TextLabel</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_21">
+               <property name="text">
+                <string>y</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="pos_y">
+               <property name="text">
+                <string>TextLabel</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QWidget" name="widget_4" native="true">
+             <widget class="QPushButton" name="pushButton_2">
+              <property name="geometry">
+               <rect>
+                <x>80</x>
+                <y>110</y>
+                <width>89</width>
+                <height>25</height>
+               </rect>
+              </property>
               <property name="text">
-               <string>x</string>
+               <string>PushButton</string>
               </property>
              </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="pos_x">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
+             <widget class="QPushButton" name="gmapping">
+              <property name="geometry">
+               <rect>
+                <x>120</x>
+                <y>280</y>
+                <width>89</width>
+                <height>25</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>gmapping</string>
+              </property>
+             </widget>
+             <widget class="QLabel" name="label_6">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>170</y>
+                <width>301</width>
+                <height>20</height>
+               </rect>
               </property>
               <property name="text">
                <string>TextLabel</string>
               </property>
              </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_21">
-              <property name="text">
-               <string>y</string>
+             <widget class="QComboBox" name="topics_vel">
+              <property name="geometry">
+               <rect>
+                <x>120</x>
+                <y>210</y>
+                <width>86</width>
+                <height>25</height>
+               </rect>
               </property>
              </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="pos_y">
+             <widget class="QPushButton" name="refresh_vel">
+              <property name="geometry">
+               <rect>
+                <x>90</x>
+                <y>50</y>
+                <width>80</width>
+                <height>30</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string> 刷新</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/images.qrc">
+                <normaloff>:/images/refresh.png</normaloff>:/images/refresh.png</iconset>
+              </property>
+             </widget>
+             <widget class="QLabel" name="label_12">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>140</y>
+                <width>301</width>
+                <height>20</height>
+               </rect>
+              </property>
               <property name="text">
                <string>TextLabel</string>
               </property>
              </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QWidget" name="widget_4" native="true">
-            <widget class="QPushButton" name="pushButton_2">
-             <property name="geometry">
-              <rect>
-               <x>80</x>
-               <y>110</y>
-               <width>89</width>
-               <height>25</height>
-              </rect>
-             </property>
-             <property name="text">
-              <string>PushButton</string>
-             </property>
+             <widget class="QPushButton" name="savemap">
+              <property name="geometry">
+               <rect>
+                <x>110</x>
+                <y>320</y>
+                <width>89</width>
+                <height>25</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>savemap</string>
+              </property>
+             </widget>
+             <widget class="QPushButton" name="close_w1">
+              <property name="geometry">
+               <rect>
+                <x>20</x>
+                <y>270</y>
+                <width>89</width>
+                <height>25</height>
+               </rect>
+              </property>
+              <property name="text">
+               <string>close</string>
+              </property>
+             </widget>
             </widget>
-            <widget class="QPushButton" name="pushButton_3">
-             <property name="geometry">
-              <rect>
-               <x>120</x>
-               <y>280</y>
-               <width>89</width>
-               <height>25</height>
-              </rect>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_4">
+             <item>
+              <widget class="QLabel" name="label_20">
+               <property name="text">
+                <string>x</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="pos_x_2">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>TextLabel</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_22">
+               <property name="text">
+                <string>y</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="pos_y_2">
+               <property name="text">
+                <string>TextLabel</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
              </property>
-             <property name="text">
-              <string>PushButton</string>
-             </property>
-            </widget>
-            <widget class="QLabel" name="label_6">
-             <property name="geometry">
-              <rect>
-               <x>10</x>
-               <y>170</y>
-               <width>301</width>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
                <height>20</height>
-              </rect>
+              </size>
              </property>
-             <property name="text">
-              <string>TextLabel</string>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="omg_layout" stretch="0">
+           <property name="leftMargin">
+            <number>40</number>
+           </property>
+           <property name="topMargin">
+            <number>40</number>
+           </property>
+           <property name="rightMargin">
+            <number>40</number>
+           </property>
+           <property name="bottomMargin">
+            <number>40</number>
+           </property>
+           <item>
+            <widget class="QWidget" name="omgControl" native="true">
+             <property name="minimumSize">
+              <size>
+               <width>300</width>
+               <height>300</height>
+              </size>
              </property>
-            </widget>
-            <widget class="QComboBox" name="topics_vel">
-             <property name="geometry">
-              <rect>
-               <x>120</x>
-               <y>210</y>
-               <width>86</width>
-               <height>25</height>
-              </rect>
+             <property name="maximumSize">
+              <size>
+               <width>300</width>
+               <height>300</height>
+              </size>
              </property>
-            </widget>
-            <widget class="QPushButton" name="refresh_vel">
-             <property name="geometry">
-              <rect>
-               <x>90</x>
-               <y>50</y>
-               <width>80</width>
-               <height>30</height>
-              </rect>
+             <property name="acceptDrops">
+              <bool>true</bool>
              </property>
-             <property name="text">
-              <string> 刷新</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../resources/images.qrc">
-               <normaloff>:/images/refresh.png</normaloff>:/images/refresh.png</iconset>
-             </property>
-            </widget>
-            <widget class="QLabel" name="label_12">
-             <property name="geometry">
-              <rect>
-               <x>10</x>
-               <y>140</y>
-               <width>301</width>
-               <height>20</height>
-              </rect>
-             </property>
-             <property name="text">
-              <string>TextLabel</string>
-             </property>
-            </widget>
-           </widget>
-          </item>
-          <item>
-           <layout class="QVBoxLayout" name="verticalLayout_4">
-            <item>
-             <widget class="QLabel" name="label_20">
-              <property name="text">
-               <string>x</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="pos_x_2">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>TextLabel</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_22">
-              <property name="text">
-               <string>y</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="pos_y_2">
-              <property name="text">
-               <string>TextLabel</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer_4">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="omg_layout" stretch="0">
-          <property name="leftMargin">
-           <number>40</number>
-          </property>
-          <property name="topMargin">
-           <number>40</number>
-          </property>
-          <property name="rightMargin">
-           <number>40</number>
-          </property>
-          <property name="bottomMargin">
-           <number>40</number>
-          </property>
-          <item>
-           <widget class="QWidget" name="omgControl" native="true">
-            <property name="minimumSize">
-             <size>
-              <width>300</width>
-              <height>300</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>300</width>
-              <height>300</height>
-             </size>
-            </property>
-            <property name="acceptDrops">
-             <bool>true</bool>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color: rgb(250, 250, 250);
+             <property name="styleSheet">
+              <string notr="true">background-color: rgb(250, 250, 250);
 border-top-color: rgb(250, 250, 250);
 border-right-color: rgb(250, 250, 250);
 border-bottom-color: rgb(250, 250, 250);
 border-left-color: rgb(250, 250, 250);</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
       </item>
      </layout>
     </item>
@@ -1273,6 +1340,7 @@ QProgressBar::chunk
      <string>文件</string>
     </property>
     <addaction name="image_file"/>
+    <addaction name="action_3"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menu"/>
@@ -1338,6 +1406,11 @@ QProgressBar::chunk
   <action name="img_format">
    <property name="text">
     <string>图片格式</string>
+   </property>
+  </action>
+  <action name="action_3">
+   <property name="text">
+    <string>地图路径</string>
    </property>
   </action>
  </widget>

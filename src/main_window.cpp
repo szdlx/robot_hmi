@@ -160,6 +160,43 @@ void MainWindow::connect_init(){
         if(!qnode.initFlag) return;
         rpanel->Set_Goal_Pose();
     });
+    connect(ui.set_start, &QPushButton::pressed, this,[this]{
+        if(!qnode.initFlag) return ;
+        rpanel->Set_Start_Pose();
+    });
+    connect(ui.gmapping,&QPushButton::clicked, this, [=]{
+        if(!qnode.initFlag) return;
+        if(launch!=NULL) return;
+        launch = new QProcess; // run roscore
+        launch->start("bash");  //
+        QString bash = "roslaunch mission_sim_bringup gmapping_ugv0.launch\n";
+        qDebug()  << "bash" << endl;
+        launch->write(bash.toLocal8Bit());
+    });
+    connect(ui.pushButton_2, &QPushButton::clicked, this, [this]{
+        if(!qnode.initFlag) return ;
+        if(launch==NULL)    return;
+        launch->close();
+//        launch = NULL;
+    });
+    connect(ui.gmapping_btn, &QPushButton::clicked, this, [this]{  //
+        if(!qnode.initFlag) return;
+        if(launch!=NULL) return;
+        launch = new QProcess; // run roscore
+        launch->start("bash");  //
+        QString bash = "roslaunch mission_sim_bringup gmapping_ugv0.launch\n";
+        qDebug()  << "bash" << endl;
+        launch->write(bash.toLocal8Bit());
+    });
+    connect(ui.savemap, &QPushButton::clicked, this, [this]{
+        if(!qnode.initFlag) return ;
+        if( launch == NULL ) return ;
+        auto save = new QProcess;
+        save->start("bash");
+        QString bash="rosrun map_server map_saver -f map \n";
+        launch->write(bash.toLocal8Bit());
+    });
+
 
 
     //connect ros node
@@ -169,7 +206,20 @@ void MainWindow::connect_init(){
     connect(&qnode, &QNode::gps_pos, this, &MainWindow::slot_gps);
     connect(&qnode, &QNode::position, this, &MainWindow::local_coor);
     connect(&qnode, &QNode::speed_vel, this, &MainWindow::slot_update_dashboard);
-
+    connect(&qnode, &QNode::obs_meet, this, [=]{
+        if(track_state==1){
+            if(isTracking){
+                ui.track_path->setText("继续跟踪");
+                ui.track_path->setChecked(false);
+                ui.track_path->setStyleSheet("color:black;");
+                isTracking=false;
+                QMessageBox::warning(NULL, "危险！", "前方遇到障碍物，请注意安全");
+            }
+        }
+    });
+    connect(&qnode, &QNode::showMarker, this, [this](QString topic, int car ){
+        rpanel->showCarPose(topic, car);
+    });
 
     slot_set_param(road.type);
     ui.selected_path->setCurrentIndex(road.type);   //
@@ -216,6 +266,28 @@ void MainWindow::connect_init(){
 
     timer = new QTimer(this);   // image timer
     connect(timer, SIGNAL(timeout()), this, SLOT(timerSlot()));
+
+    connect(ui.close_w1, &QPushButton::clicked, [this]{
+        if(ui.verticalWidget_2->isVisible())
+            ui.verticalWidget_2->setVisible(false);
+        else
+            ui.verticalWidget_2->setVisible(true);
+        ui.horcontrolwidget->setVisible(false);
+    });
+    connect(ui.screen_btn, &QPushButton::pressed, [this]{
+        ui.widget_plot->setVisible(fullscreen);
+        ui.verticalWidget_2->setVisible(fullscreen);
+        ui.horcontrolwidget->setVisible(fullscreen);
+        fullscreen=!fullscreen;
+        if(fullscreen){
+            ui.screen_btn->setText("缩小");
+            ui.screen_btn->setIcon(QIcon(QString::fromLocal8Bit("://images/narrow.png")));
+        }
+        else{
+            ui.screen_btn->setText("全屏");
+            ui.screen_btn->setIcon(QIcon(QString::fromLocal8Bit("://images/fullscren.png")));
+        }
+    });
 }
 
 void MainWindow::slot_stopTrack(){
@@ -396,10 +468,13 @@ void MainWindow::saveImage()
 void MainWindow::onTopicMapChanged(int index){
     if(!qnode.initFlag) return;
     //qDebug() << "set Map topic \n";
-    QStringList parts = ui.topics_map->itemData(index).toString().split(" ");
-    QString topic = parts.first();
-    if(!topic.isEmpty())
-        rpanel->mapDisplaySlot(topic);
+//    QStringList parts = ui.topics_map->itemData(index).toString().split(" ");
+//    QString topic = parts.first();
+//    if(!topic.isEmpty())
+//        rpanel->mapDisplaySlot(topic);
+    if(!qnode.mapList.empty()){
+        rpanel->mapDisplaySlot(qnode.mapList);
+    }
 }
 
 void MainWindow::onTopicLaserChanged(int index){
@@ -720,6 +795,8 @@ void MainWindow::updateMapTopicList(){
     changeComboex(ui.topics_map,"nav_msgs/OccupancyGrid");
     changeComboex(ui.topics_laser,"sensor_msgs/LaserScan");
     rpanel->robotModelDisplySlot();
+    rpanel->showPath(qnode.pathList);
+    rpanel->polyfootprint(qnode.polyList);
 }
 
 void MainWindow::updateImgTopicList()

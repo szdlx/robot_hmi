@@ -1,7 +1,9 @@
 ﻿#include <QColor>
 #include <QVBoxLayout>
+#include <QPushButton>
 
 #include "./include/RvizPanel/rvizpanel.h"
+#include "QDebug"
 
 //RvizPanel base class for pc2 & gridmap
 RvizPanel::RvizPanel(QWidget* parent)
@@ -9,7 +11,6 @@ RvizPanel::RvizPanel(QWidget* parent)
     , settings("rviz_topic", "robot_hmi")
     , inited(false)
 {
-//    if(layout != NULL) main_layout=layout;
 }
 
 RvizPanel::~RvizPanel()
@@ -77,6 +78,8 @@ void RvizPanel::initPanelSlot()
 //    view->lookAt()    // 改变视角
     inited=true;
 
+    // 获取Display组
+    display_group_ = manager->getRootDisplayGroup();
 }
 
 void RvizPanel::deinitPanelSlot()
@@ -93,30 +96,29 @@ void RvizPanel::deinitPanelSlot()
 }
 
 
-//void RvizPanel::Display_RobotModel(bool enable)
-//{
-//    if(RobotModel_!=NULL)
-//    {
-//        delete RobotModel_;
-//        RobotModel_=NULL;
-//    }
-//    RobotModel_=manager_->createDisplay("rviz/RobotModel","myRobotModel",enable);
-//    ROS_ASSERT(RobotModel_!=NULL);
-//}
 
+int cnt=0;
+void RvizPanel::mapDisplaySlot(const QVector<std::string>& topic){
+    if(topic.empty())return ;
+    if(cnt) return ;
+    cnt++;
 
-void RvizPanel::mapDisplaySlot(const QString& topic){
-    if(mapDisplay!=NULL)
-    {
-//        auto a = mapDisplay->subProp("Topic")->getValue();
-//        if(topic==a)    // topic not change
-//            return;
-        delete mapDisplay;
-        mapDisplay=NULL;
+    for(auto str:topic){
+        auto md=manager->createDisplay("rviz/Map","myMap",true);
+        ROS_ASSERT(md!=NULL);
+        md->subProp("Topic")->setValue(str.c_str());
+        if(str.find("local_costmap")!=std::string::npos){
+            md->subProp("Color Scheme")->setValue("costmap");
+            md->subProp("Alpha")->setValue("0.4");
+        }else if(str.find("global_costmap")!=std::string::npos){
+            md->subProp("Color Scheme")->setValue("costmap");
+            md->subProp("Alpha")->setValue("0.2");
+        }else {
+            md->subProp("Color Scheme")->setValue("map");
+            md->subProp("Alpha")->setValue("0.9");
+        }
     }
-    mapDisplay=manager->createDisplay("rviz/Map","myMap",true);
-    ROS_ASSERT(mapDisplay!=NULL);
-    mapDisplay->subProp("Topic")->setValue(topic);
+
 
 }
 void RvizPanel::LaserDisplaySlot(const QString& topic){
@@ -150,201 +152,132 @@ void RvizPanel::Set_Start_Pose()
     rviz::Tool* current_tool_= tool_manager_->addTool("rviz/SetInitialPose");
     //设置当前使用的工具
     tool_manager_->setCurrentTool(current_tool_);
+    manager->startUpdate();
 }
 void RvizPanel::Set_Goal_Pose()
 {
     rviz::ToolManager* tool_manager_=manager->getToolManager();
-     rviz::Tool* current_tool_=tool_manager_->addTool("rviz/SetGoal");
-     //获取属性容器
-     rviz::Property* pro=current_tool_->getPropertyContainer();
-     //设置发布导航目标点的topic
-     pro->subProp("Topic")->setValue("/move_base_simple/goal");
-     //设置当前使用的工具
-     tool_manager_->setCurrentTool(current_tool_);
+    //添加工具
+    rviz::Tool* current_tool= tool_manager_->addTool("rviz/SetGoal");
+    //设置goal的话题
+    rviz::Property* pro= current_tool->getPropertyContainer();
+    pro->subProp("Topic")->setValue("/move_base_simple/goal");
+    //设置当前frame
+    manager->setFixedFrame("/map");
+    //设置当前使用的工具为SetGoal（实现在地图上标点）
+    tool_manager_->setCurrentTool( current_tool );
+
+    goal=manager->createDisplay("rviz/Pose","myGoal",true);
+    goal->subProp("Topic")->setValue("/move_base_simple/goal");
+    ROS_ASSERT(goal!=NULL);
+    manager->startUpdate();
+
 }
 
-
-
-//RvizLaserLidar
-RvizLaserLidar::RvizLaserLidar(QWidget* parent)
-    : RvizPanel(parent)
+int RvizPanel::GetDisplayNum(QString ClassID)
 {
+    int num = -1;
+    for (int i = 0; i < display_group_->numDisplays(); i++)
+    {
+        if (display_group_->getDisplayAt(i) != nullptr)
+        {
+            if (ClassID == display_group_->getDisplayAt(i)->getClassId())
+            {
+                num = i;
+                break;
+            }
+        }
+    }
+    return num;
 }
 
-RvizLaserLidar::~RvizLaserLidar()
+void RvizPanel::polyfootprint(const QVector<std::string>& poly){
+    if(poly.empty()) return ;
+    QString color[]={"255;00;255;","255;0;0;","0;0;255","0;255;255","0;0;0"};
+    int cnt=0;
+    for (std::string topic : poly) {
+        auto poly=manager->createDisplay("rviz/Polygon","mypoly",true);
+        poly->subProp("Topic")->setValue(topic.c_str());
+        poly->subProp("Color")->setValue(color[cnt++]);
+        ROS_ASSERT(poly!=NULL);
+//        path->subProp("")
+    }
+    manager->startUpdate();
+}
+
+void RvizPanel::showPath(const QVector<std::string>& pathList){
+    if(pathList.empty()) return ;
+    QString color[]={"255;00;255;","255;0;0;","0;0;255","0;255;255","0;0;0"};
+    int cnt=0;
+    for (std::string topic : pathList) {
+        auto path=manager->createDisplay("rviz/Path","mypath",true);
+        path->subProp("Topic")->setValue(topic.c_str());
+        path->subProp("Color")->setValue(color[cnt++]);
+        ROS_ASSERT(path!=NULL);
+//        path->subProp("")
+    }
+    manager->startUpdate();
+}
+
+
+void RvizPanel::showCarPose(const QString& topic, int car){
+
+    int num = GetDisplayNum("rviz/Marker");
+    qDebug()<< "num:" << num << endl;
+
+//    if(marker1!=NULL){
+//        delete marker1;
+//        marker1=NULL;
+//    }
+    if(num==-1){
+        marker1=manager->createDisplay("rviz/Marker","",true);
+        marker1->subProp("Topic")->setValue(topic);
+        ROS_ASSERT(marker1!=NULL);
+    }
+
+//    if(num==-1){
+//        if(car==1){
+//            marker1=manager->createDisplay("rviz/Marker","",true);
+//            marker1->subProp("Topic")->setValue(topic);
+//            ROS_ASSERT(marker1!=NULL);
+//        }
+//        else {
+//            marker2=manager->createDisplay("rviz/Marker","",true);
+//            marker2->subProp("Topic")->setValue(topic);
+//            ROS_ASSERT(marker2!=NULL);
+//        }
+//    }
+
+
+}
+
+
+void RvizPanel::resizeEvent(QResizeEvent*)
 {
-    qDebug("del PC2"); //TODO
+    //重新设置顶部工具栏的位置和宽高,可以自行设置顶部显示或者底部显示
+//    int height = 20;
+//    flow->setGeometry(borderWidth, borderWidth, this->width() - (borderWidth * 2), height);
+    //flowPanel->setGeometry(borderWidth, this->height() - height - borderWidth, this->width() - (borderWidth * 2), height);
 }
 
-void RvizLaserLidar::initPanelSlot()
+void RvizPanel::enterEvent(QEvent*)
 {
-    RvizPanel::initPanelSlot();
-    if (inited)
-        return;
-
-    type_name = "PC2Lidar";
-
-    // Create a PC2 display.
-    qDebug("IN laser"); //TODO
-    display = manager->createDisplay("rviz/LaserScan", "Laser", true);
-    ROS_ASSERT(display != NULL);
-    manager->setFixedFrame("map");
-    display->subProp("Topic")->setValue("/scan");
-    display->subProp("Size (m)")->setValue(0.1);
-
-    inited = true;
+    //这里还可以增加一个判断,是否获取了焦点的才需要显示
+    //if (this->hasFocus()) {}
+//    if (flowEnable) {
+//        flow->setVisible(true);
+//    }
 }
 
-//RvizLaserLidar
-RvizMapLidar::RvizMapLidar(QWidget* parent)
-    : RvizPanel(parent)
+void RvizPanel::leaveEvent(QEvent*)
 {
+//    if (flowEnable) {
+//        flow->setVisible(false);
+//    }
 }
 
-RvizMapLidar::~RvizMapLidar()
-{
-    qDebug("del PC2"); //TODO
-}
 
-void RvizMapLidar::initPanelSlot()
-{
-    RvizPanel::initPanelSlot();
-    if (inited)
-        return;
 
-    type_name = "PC2Lidar";
-
-    // Create a PC2 display.
-    qDebug("IN map"); //TODO
-    display = manager->createDisplay("rviz/Map", "mymap", true);
-    ROS_ASSERT(display != NULL);
-    manager->setFixedFrame("map");
-    display->subProp("Topic")->setValue("/map");
-//    display->subProp("Size (m)")->setValue(0.1);
-
-    inited = true;
-}
-
-//RvizPC2Lidar
-RvizPC2Lidar::RvizPC2Lidar(QWidget* parent)
-    : RvizPanel(parent)
-{
-}
-
-RvizPC2Lidar::~RvizPC2Lidar()
-{
-    qDebug("del PC2"); //TODO
-}
-
-void RvizPC2Lidar::initPanelSlot()
-{
-    RvizPanel::initPanelSlot();
-    if (inited)
-        return;
-
-    type_name = "PC2Lidar";
-
-    // Create a PC2 display.
-    qDebug("IN PC2"); //TODO
-    display = manager->createDisplay("rviz/PointCloud2", "PC2Lidar", true);
-    ROS_ASSERT(display != NULL);
-
-    // Configure the PC2Display the way we like it.
-    //    manager->setFixedFrame("vehicle_frame");
-    manager->setFixedFrame(settings.value("rviz/PC2Lidar/fixedframe").toString());
-    //    pc2->subProp("Topic")->setValue("/lidar_cloud_calibrated");
-    display->subProp("Topic")->setValue(settings.value("rviz/PC2Lidar/topic"));
-    display->subProp("Size (m)")->setValue(0.1);
-
-    inited = true;
-
-    //    RvizPanel::initPanelSlot();
-    //    if (inited)
-    //        return;
-
-    //    type_name = "PC2Lidar";
-
-    //    // Create a image display.
-    //    qDebug("IN image"); //TODO
-    //    display = manager->createDisplay("my_image_display/Image", "Image", true);
-    //    ROS_ASSERT(display != NULL);
-
-    //    // Configure the PC2Display the way we like it.
-    //    display->subProp("Image Topic")->setValue("/car/image");
-    //    display->subProp("Transport Hint")->setValue("compressed");
-
-    //    inited = true;
-}
-
-//RvizPC2Colored
-RvizPC2Colored::RvizPC2Colored(QWidget* parent)
-    : RvizPanel(parent)
-{
-}
-
-RvizPC2Colored::~RvizPC2Colored()
-{
-    qDebug("del PC2"); //TODO
-}
-
-void RvizPC2Colored::initPanelSlot()
-{
-    RvizPanel::initPanelSlot();
-    if (inited)
-        return;
-
-    type_name = "PC2Colored";
-
-    // Create a PC2 display.
-    qDebug("IN PC2"); //TODO
-    display = manager->createDisplay("rviz/PointCloud2", "PC2Colored", true);
-    ROS_ASSERT(display != NULL);
-
-    // Configure the PC2Display the way we like it.
-    //    manager->setFixedFrame("vehicle_frame");
-    manager->setFixedFrame(settings.value("rviz/PC2Colored/fixedframe").toString());
-    //    display->subProp("Topic")->setValue("/colored_cloud_toshow");
-    display->subProp("Topic")->setValue(settings.value("rviz/PC2Colored/topic"));
-    display->subProp("Size (m)")->setValue(0.1);
-
-    inited = true;
-}
-
-//RvizGridMap
-RvizGridMap::RvizGridMap(QWidget* parent)
-    : RvizPanel(parent)
-{
-}
-
-RvizGridMap::~RvizGridMap()
-{
-    qDebug("del GM"); //TODO
-}
-
-void RvizGridMap::initPanelSlot()
-{
-    RvizPanel::initPanelSlot();
-    if (inited)
-        return;
-
-    type_name = "GridMap";
-
-    qDebug("IN GM"); //TODO
-    //    gridmap = manager->createDisplay("grid_map_rviz_plugin/GridMap", "GridMap", true);
-    display = manager->createDisplay("grid_map_rviz_plugin/GridMap", "GridMap", true);
-    ROS_ASSERT(display != NULL);
-
-    //    manager->setFixedFrame("odom");
-    manager->setFixedFrame(settings.value("rviz/GridMap/fixedframe").toString());
-    view->subProp("Target Frame")->setValue("vehicle_frame");
-    //    manager->getViewManager()->getCurrent()->setProperty("Target Frame", "vehicle_frame");
-
-    //    display->subProp("Topic")->setValue("/elevation_mapping/elevation_map");
-    display->subProp("Topic")->setValue(settings.value("rviz/GridMap/topic"));
-    display->subProp("History Length")->setValue(100);
-
-    inited = true;
-}
 
 //ImageView class for camera
 RvizImage::RvizImage(QWidget* parent)

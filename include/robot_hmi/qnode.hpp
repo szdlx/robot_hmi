@@ -24,19 +24,25 @@
 #include <string>
 #include <QThread>
 #include <QStringListModel>
+#include <QImage>
+#include <QProcess>
+
 #include <std_msgs/String.h>
 #include <map>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <sensor_msgs/LaserScan.h>
 #include <std_msgs/Float32.h>
+//#include <gmapping/slam_gmapping.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <QImage>
-#include <QProcess>
+#include <visualization_msgs/Marker.h>
+
+
 
 #include "../robot_msg/four1.h"
 #include "GPS_ksxt.h"
@@ -59,7 +65,7 @@ public:
 	bool init();
     bool init(const std::string &master_url, const std::string &host_url, int car);
     void init_set();
-    QList<QString> getTopics(const QString& message_types);    //
+    QList<QString> getTopics(const QString& message_types);    //La
     QSet<QString> getTopics(const QSet<QString>& message_types,
                                    const QSet<QString>& message_sub_types, const QList<QString>& transports);
     void set_cmd_vel(float linear,float angular);
@@ -87,9 +93,11 @@ Q_SIGNALS:
     void speed_vel(float,float);
     void power_vel(float);
     void position(double x,double y,double z);
+    void showMarker(QString topic, int car);
     void connectMasterSuccess(int car);
     void connectMasterFailed(int car);
     void gps_pos(int posqual, int headingqual, double x, double y);
+    void obs_meet(int car);
 
 public slots:
     void cmd_output(int car);
@@ -100,10 +108,13 @@ private:
     char** init_argv;
     ros::Publisher cmd_vel_pub[2];
     ros::Publisher goal_pub[2];
+    ros::Publisher marker_pub[2];
+
     QStringListModel logging_model;
     ros::Subscriber odom_sub[2];
     ros::Subscriber power_sub[2];
     ros::Subscriber gps_sub[2];
+    ros::Subscriber laser_sub[2];
 //    ros::Subscriber odom_sub;   // xiang
     image_transport::Subscriber image_sub;
 //    image_transport::ImageTransport *it;
@@ -112,12 +123,16 @@ private:
     void power_callback(const ros_four1_msg::four1ConstPtr &msg, int car);
     void odom_callback(const nav_msgs::Odometry::ConstPtr &msg, int car);
     void gps_callback(const gps_ksxt_msg::GPS_ksxtConstPtr &msg, int car);
+    void laser_callback(const sensor_msgs::LaserScanConstPtr &msg, int car);
 
 
 public:
     bool initFlag=false;    // 判断是否连接ros master成功
     uint car=0;     //
     int car0=0, car1=1;
+    QVector<std::string> pathList;
+    QVector<std::string> mapList;
+    QVector<std::string> polyList;
 
 };
 

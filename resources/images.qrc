@@ -111,5 +111,7 @@
         <file>images/car.png</file>
         <file>images/track_path.png</file>
         <file>images/select_path.png</file>
+        <file>images/fullscren.png</file>
+        <file>images/narrow.png</file>
     </qresource>
 </RCC>

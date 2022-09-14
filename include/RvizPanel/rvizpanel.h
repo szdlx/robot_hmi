@@ -9,6 +9,7 @@
 #include "rviz/default_plugin/map_display.h"
 #include "rviz/default_plugin/laser_scan_display.h"
 #include <rviz/tool_manager.h>
+#include <rviz/display_group.h>
 #include <rviz/tool.h>
 #include <QSettings>
 #include <QVBoxLayout>
@@ -33,87 +34,45 @@ public slots:
     void initPanelSlot();
     void deinitPanelSlot();
 
-    void mapDisplaySlot(const QString& topic);
+    void mapDisplaySlot(const QVector<std::string>& topic);
     void LaserDisplaySlot(const QString& topic);
     void robotModelDisplySlot();
     void Set_Start_Pose();
     void Set_Goal_Pose();
+    void polyfootprint(const QVector<std::string>& poly);
+    void showPath(const QVector<std::string>& pathList);
+    void showCarPose(const QString& topic, int car);
+
+    int GetDisplayNum(QString ClassID);
+
+protected:
+    void resizeEvent(QResizeEvent *);
+    void enterEvent(QEvent *);
+    void leaveEvent(QEvent *);
 
 protected:
    QVBoxLayout* main_layout;
 
     rviz::VisualizationManager* manager;
     rviz::RenderPanel* render_panel;
+    rviz::DisplayGroup* display_group_;
     rviz::Display* display;
     rviz::ViewController* view;
     rviz::Display *mapDisplay=NULL;
     rviz::Display *laserScanDisplay=NULL;
     rviz::Display* robotModelDisplay=NULL;
+    rviz::Display* marker1=NULL;
+    rviz::Display* marker2=NULL;
+    rviz::Display* goal=NULL;
+
 
     QSettings settings;
     QString type_name;
     bool inited;
+
+    QWidget* flow;
 };
 
-//
-class RvizLaserLidar : public RvizPanel {
-    Q_OBJECT
-
-public:
-    RvizLaserLidar(QWidget* parent);
-    virtual ~RvizLaserLidar();
-public slots:
-    void initPanelSlot();
-};
-
-
-//
-class RvizMapLidar : public RvizPanel {
-    Q_OBJECT
-
-public:
-    RvizMapLidar(QWidget* parent);
-    virtual ~RvizMapLidar();
-public slots:
-    void initPanelSlot();
-};
-
-
-
-//
-class RvizPC2Lidar : public RvizPanel {
-    Q_OBJECT
-
-public:
-    RvizPC2Lidar(QWidget* parent);
-    virtual ~RvizPC2Lidar();
-public slots:
-    void initPanelSlot();
-};
-
-
-//
-class RvizPC2Colored : public RvizPanel {
-    Q_OBJECT
-
-public:
-    RvizPC2Colored(QWidget* parent);
-    virtual ~RvizPC2Colored();
-public slots:
-    void initPanelSlot();
-};
-
-
-//
-class RvizGridMap : public RvizPanel {
-    Q_OBJECT
-
-public:
-    RvizGridMap(QWidget* parent);
-    virtual ~RvizGridMap();
-public slots:
-    void initPanelSlot();
-};
 
 //
 class RvizImage : public QWidget {
@@ -134,6 +93,7 @@ private:
     QString topic;
     QSettings settings;
     bool inited;
+
 
 public:
     const sensor_msgs::Image::ConstPtr& getImage();
