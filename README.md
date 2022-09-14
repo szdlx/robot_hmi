@@ -34,3 +34,11 @@ rosrun robot_hmi robot_hmi
 ![](https://github.com/lrm2017/robot_hmi/blob/main/%E6%95%88%E6%9E%9C%E5%9B%BE/2022-08-29%2010-19-07%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE.png?raw=true)
 
 ![](https://github.com/lrm2017/robot_hmi/blob/main/%E6%95%88%E6%9E%9C%E5%9B%BE/2022-08-29%2010-17-25%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE.png?raw=true)
+
+## 建图与导航
+
+* 点击开始建图，调用gmapping建图
+* 点击导航，调用move base规划路径
+* 添加全屏模式，方便对地图操作
+
+![](https://github.com/lrm2017/robot_hmi/blob/main/%E6%95%88%E6%9E%9C%E5%9B%BE/%E5%85%A8%E5%B1%8F%E5%AF%BC%E8%88%AA.png?raw=true)
