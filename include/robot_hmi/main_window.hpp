@@ -25,7 +25,6 @@
 #include "common.hpp"
 #include "purepusuit.h"
 #include "QMouseEvent"
-#include "ros_launch_manager.hpp"
 
 /*****************************************************************************
 ** Namespace
@@ -141,13 +140,6 @@ private:
     QTimer *cmd_time;    // publish cmd
     QPair<float, float> vel;
 
-    ROSLaunchManager* roslaunch_slam=NULL;
-    pid_t slam_pid;
-    ROSLaunchManager* roslaunch_nav=NULL;
-    pid_t nav_pid;
-    QProcess *laser_cmd;
-    QProcess *slam;
-    QProcess *nav;
     QProcess *launch=NULL;   // gmapping launch;
 //    RvizMapLidar *rmap;
     RvizPanel   *rpanel;    

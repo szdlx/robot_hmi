@@ -48,6 +48,8 @@
 #include "GPS_ksxt.h"   //GPS ksxt报文 自定义消息
 #include "com.h"        // 控制升降机消息类型
 
+#include "ros_launch_manager.hpp"
+
 /*****************************************************************************
 ** Namespaces
 *****************************************************************************/
@@ -73,6 +75,7 @@ public:
     void sub_image(QString topic_name);
     void control_elevator(int hight, bool sw);  //升降机高度与温度开关
     void set_goal(double x,double y,double z);
+    void roslaunch(bool checked);
 	void run();
 	/*********************
 	** Logging
@@ -106,6 +109,12 @@ public slots:
     void cmd_error_output(int car);
 
 private:
+
+    ROSLaunchManager* roslaunch_slam=NULL;
+    pid_t slam_pid;
+    ROSLaunchManager* roslaunch_nav=NULL;
+    pid_t nav_pid;
+
 	int init_argc;
     char** init_argv;
     ros::Publisher cmd_vel_pub[2];

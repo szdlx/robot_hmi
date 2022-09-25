@@ -80,10 +80,6 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 
     launch = new QProcess; // run roscore
     launch->start("bash");  //
-    slam = new QProcess;
-    slam->start("base");
-    nav = new QProcess;
-    nav->start("base");
 
     connect_init(); // initial connect
 
@@ -313,13 +309,6 @@ void MainWindow::connect_init(){
     timer = new QTimer(this);   // image timer
     connect(timer, SIGNAL(timeout()), this, SLOT(timerSlot()));
 
-//    connect(ui.close_w1, &QPushButton::clicked, [this]{
-//        if(ui.verticalWidget_2->isVisible())
-//            ui.verticalWidget_2->setVisible(false);
-//        else
-//            ui.verticalWidget_2->setVisible(true);
-//        ui.horcontrolwidget->setVisible(false);
-//    });
     connect(ui.screen_btn, &QPushButton::pressed, [this]{
         ui.widget_plot->setVisible(fullscreen);
         ui.verticalWidget_2->setVisible(fullscreen);
@@ -403,23 +392,8 @@ void MainWindow::connect_init(){
         ui.rosmasteruri->setEnabled(!(ui.local_ip->isChecked()));});
 
     connect(ui.pushButton_3, &QPushButton::clicked, [this]{
-//        rviz= new QProcess;
-//        rviz->start("bash");  //
-//        QString bash = "rviz\n";
-//        // qDebug()  << "bash" << endl;
-//        rviz->write(bash.toLocal8Bit());
     });
     connect(ui.pushButton_5, &QPushButton::clicked, [this]{
-
-//        launch->kill();
-//        rviz->kill();
-//        QProcess* kill_process = new QProcess;
-//        QString str = "kill -9 " + QString::number(launch->processId());
-//        qDebug() << str;
-//        kill_process->start(str);
-//        bool started=kill_process->waitForStarted();
-//        qDebug()<<"Process started:"<<started<<kill_process->errorString();
-//        Q_ASSERT(started);
     });
 
     connect(ui.map_switch, &SwitchButton::statusChanged, [this]{
@@ -429,42 +403,7 @@ void MainWindow::connect_init(){
         ui.save_map->setVisible(!ischecked);
         ui.gmapping_btn->setVisible(!ischecked);
         if(!qnode.initFlag) return ;
-        if(ischecked){  // navigation
-            if(roslaunch_slam!=NULL){
-                try {
-                    roslaunch_slam->stop(slam_pid, SIGINT);
-                }
-                catch (std::exception const &exception) {
-                    ROS_WARN("%s", exception.what());
-                }
-            }
-            if(roslaunch_nav==NULL) roslaunch_nav = new ROSLaunchManager;
-            try {
-                nav_pid = roslaunch_nav->start(
-                    "mission_sim_bringup", "mission_start.launch");
-            }
-            catch (std::exception const &exception) {
-                ROS_WARN("%s", exception.what());
-            }
-        }
-        else {  // slam
-            if(roslaunch_nav!=NULL){
-                try {
-                    roslaunch_nav->stop(nav_pid, SIGINT);
-                }
-                catch (std::exception const &exception) {
-                    ROS_WARN("%s", exception.what());
-                }
-            }
-            if(roslaunch_slam==NULL) roslaunch_slam = new ROSLaunchManager;
-            try {
-                slam_pid = roslaunch_slam->start(
-                    "car_slam", "karto_slam.launch");
-            }
-            catch (std::exception const &exception) {
-                ROS_WARN("%s", exception.what());
-            }
-        }
+        qnode.roslaunch(ischecked);
     });
 }
 

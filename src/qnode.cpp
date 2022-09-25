@@ -51,6 +51,25 @@ QNode::~QNode() {
 
       ros::waitForShutdown();
     }
+    if(nav_pid!=-1){
+        try {
+            roslaunch_nav->stop(nav_pid, SIGINT);
+            nav_pid=-1;
+        }
+        catch (std::exception const &exception) {
+            ROS_WARN("%s", exception.what());
+        }
+    }
+    if(slam_pid!=-1){
+        try {
+            roslaunch_slam->stop(slam_pid, SIGINT);
+            slam_pid = -1;
+        }
+        catch (std::exception const &exception) {
+            ROS_WARN("%s", exception.what());
+        }
+    }
+
 	wait();
 }
 
@@ -220,6 +239,8 @@ bool QNode::init(const std::string &master_url, const std::string &host_url, int
 
 void QNode::init_set(){
     initFlag = true;
+    nav_pid = -1;
+    slam_pid = -1;
     ros::start(); // explicitly needed since our nodehandle is going out of scope.
     ros::NodeHandle n;
     std::string ugv[2] ={"/UGV0", "/UGV1"};
@@ -418,6 +439,47 @@ void QNode::log( const LogLevel &level, const std::string &msg) {
 	QVariant new_row(QString(logging_model_msg.str().c_str()));
 	logging_model.setData(logging_model.index(logging_model.rowCount()-1),new_row);
 	Q_EMIT loggingUpdated(); // used to readjust the scrollbar
+}
+
+void QNode::roslaunch(bool checked){
+    if(checked){  // navigation
+        if(slam_pid!=-1){
+            try {
+                roslaunch_slam->stop(slam_pid, SIGINT);
+                slam_pid = -1;
+            }
+            catch (std::exception const &exception) {
+                ROS_WARN("%s", exception.what());
+            }
+        }
+        if(roslaunch_nav==NULL) roslaunch_nav = new ROSLaunchManager;
+        try {
+            nav_pid = roslaunch_nav->start(
+                "mission_sim_bringup", "mission_start.launch");
+        }
+        catch (std::exception const &exception) {
+            ROS_WARN("%s", exception.what());
+        }
+    }
+    else {  // slam
+        if(nav_pid!=-1){
+            try {
+                roslaunch_nav->stop(nav_pid, SIGINT);
+                nav_pid=-1;
+            }
+            catch (std::exception const &exception) {
+                ROS_WARN("%s", exception.what());
+            }
+        }
+        if(roslaunch_slam==NULL) roslaunch_slam = new ROSLaunchManager;
+        try {
+            slam_pid = roslaunch_slam->start(
+                "car_slam", "karto_slam.launch");
+        }
+        catch (std::exception const &exception) {
+            ROS_WARN("%s", exception.what());
+        }
+    }
 }
 
 }  // namespace robot_hmi
