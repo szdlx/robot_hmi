@@ -23,6 +23,7 @@ public:
     QPair<double, double> track_path(STATE sv);    // 返回控制量，线速度与角速度
     void reset(){lastInd=0;};
     QPair<double, double> word2vehicle(QPointF wpos, STATE vpos);
+    double dis2point(QPair<double,double> pos1, QPair<double,double>pos2);
 
     void operator()(STATE s){
         start = s;
@@ -33,6 +34,8 @@ public:
 
 Q_SIGNALS:
     void track_finish();
+public:
+    QPointF lookpoint;
 
 private:
     STATE start;

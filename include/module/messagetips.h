@@ -61,7 +61,7 @@ private:
 
 
 signals:
-
+    emit void close();
 };
 
 #endif // MESSAGETIPS_H

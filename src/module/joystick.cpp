@@ -14,7 +14,7 @@ JoyStick::JoyStick(QWidget* parent) : QWidget(parent) {
           [=] {
       emit keyNumchanged(getKeyNum());  //
       emit keyPosChanged(getkeyPos());  //
-
+      emitVel();
   });
 
 }
@@ -91,6 +91,7 @@ void JoyStick::mouseReleaseEvent(QMouseEvent* event) {
   mousePressed = false;
   emit keyNumchanged(JoyStick::stop);
   emit keyPosChanged(getkeyPos());
+  emit keyControl(0,0);
   update();
 }
 void JoyStick::mousePressEvent(QMouseEvent* event) {
@@ -126,6 +127,24 @@ QPointF JoyStick::getkeyPos(){
     double posx=dis*cos(angle)/padR;
 //    qDebug() << "padr " << padR << ", dis " << dis <<", ang " << 180*angle/M_PI << "(x,y) " <<posx <<","<< posy<< endl;
     return QPointF(posx, posy);
+}
+
+void JoyStick::emitVel(){
+    auto pos=getCoorPos(QPointF(mouseX, mouseY));
+    double angle = atan2(pos.y(), pos.x());
+    double dis = pos.manhattanLength(); //
+    dis = dis>padR?padR:dis;
+    int sgn;
+    if( angle >= 0 ){
+        angle = angle - M_PI/2;
+        sgn = 1;
+    } else {
+        angle = - M_PI/2 - angle;
+        sgn = -1;
+    }
+    emit keyControl(sgn*dis/padR, -angle/M_PI_2);
+//    qDebug() << "padr " << padR << ", dis " << dis <<", ang " << 180*angle/M_PI << "(x,y) " <<posx <<","<< posy<< endl;
+//    return {dis,angle};
 }
 
 //convert to Cartesian coordinate

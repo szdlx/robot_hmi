@@ -89,5 +89,36 @@
         <file>images/classes/DepthCloud.png</file>
         <file>images/classes/Camera.png</file>
         <file>images/classes/Axes.png</file>
+        <file>images/robot3.png</file>
+        <file>images/offline2.png</file>
+        <file>images/robot_y.png</file>
+        <file>images/robot_5.png</file>
+        <file>images/robot_4.png</file>
+        <file>images/icons8-robot-64.png</file>
+        <file>images/online1.png</file>
+        <file>images/offline1.png</file>
+        <file>images/refresh.png</file>
+        <file>images/bg-snapshootsave.png</file>
+        <file>images/snapshootsave.png</file>
+        <file>images/scan-laser.png</file>
+        <file>images/nav.png</file>
+        <file>images/start.png</file>
+        <file>images/end.png</file>
+        <file>images/qss/Ubuntu.qss</file>
+        <file>images/qss/MacOS.qss</file>
+        <file>images/qss/ConsoleStyle.qss</file>
+        <file>images/qss/whiteBackground.qss</file>
+        <file>images/car.png</file>
+        <file>images/track_path.png</file>
+        <file>images/select_path.png</file>
+        <file>images/fullscren.png</file>
+        <file>images/narrow.png</file>
+        <file>images/add.png</file>
+        <file>images/reduce.png</file>
+        <file>images/minimize.png</file>
+        <file>images/minscreen.png</file>
+        <file>images/close.png</file>
+        <file>images/fillscreen.png</file>
+        <file>images/zoom.png</file>
     </qresource>
 </RCC>

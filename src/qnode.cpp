@@ -10,6 +10,7 @@
 ** Includes
 *****************************************************************************/
 #include <ros/master.h>
+
 #include <ros/ros.h>
 #include <ros/network.h>
 #include "tf/transform_datatypes.h"//转换函数头文件
@@ -24,9 +25,9 @@
 #include <sstream>
 #include "QDebug"
 #include "QProcess" // deal cmd
-#include "../include/robot_hmi/qnode.hpp"
-#include "../include/robot_msg/four1.h"
-#include "GPS_ksxt.h"
+#include "qnode.hpp"
+#include "four1.h"
+
 
 
 /*****************************************************************************
@@ -47,6 +48,7 @@ QNode::QNode(int argc, char** argv ) :
 QNode::~QNode() {
     if(ros::isStarted()) {
       ros::shutdown(); // explicitly needed since we use ros::start();
+
       ros::waitForShutdown();
     }
 	wait();
@@ -66,7 +68,7 @@ bool QNode::init() {
 QList<QString> QNode::getTopics(const QString& message_types){
     ros::master::V_TopicInfo topic_info;  // 获取所有的ros话题
     ros::master::getTopics(topic_info);
-
+//    ros::this_node::getName()
     pathList.clear();   // path topic
     mapList.clear();
     polyList.clear();
@@ -227,21 +229,29 @@ void QNode::init_set(){
     goal_pub[1]=n.advertise<geometry_msgs::PoseStamped>(ugv[0]+"/goal",1000);
     marker_pub[0]=n.advertise<visualization_msgs::Marker>(ugv[0]+"/marker",1000);
     marker_pub[1]=n.advertise<visualization_msgs::Marker>(ugv[1]+"/marker",1000);
+    motor_pub[0]=n.advertise<left_motor::com>(ugv[0]+"/elevator",1000);
+    motor_pub[1]=n.advertise<left_motor::com>(ugv[1]+"/elevator",1000);
 
     // 利用boost::bind 函数 绑定 额外参数
-    power_sub[0] = n.subscribe<ros_four1_msg::four1>(ugv[0]+"four_info",1000,boost::bind(&QNode::power_callback,this, _1, 0));
-    power_sub[1] = n.subscribe<ros_four1_msg::four1>(ugv[1]+"four_info",1000,boost::bind(&QNode::power_callback,this,_1, 1));
+    power_sub[0] = n.subscribe<ros_four1_msg::four1>(ugv[0]+"/four_info",1000,boost::bind(&QNode::power_callback,this, _1, 0));
+    power_sub[1] = n.subscribe<ros_four1_msg::four1>(ugv[1]+"/four_info",1000,boost::bind(&QNode::power_callback,this, _1, 1));
     odom_sub[0] = n.subscribe<nav_msgs::Odometry>(ugv[0]+"/odom",1000,boost::bind(&QNode::odom_callback,this,_1,0));
     odom_sub[1] = n.subscribe<nav_msgs::Odometry>(ugv[1]+"/odom",1000,boost::bind(&QNode::odom_callback,this,_1,1));
     gps_sub[0] = n.subscribe<gps_ksxt_msg::GPS_ksxt>(ugv[0]+"/gps",1000, boost::bind(&QNode::gps_callback,this,_1,0));
     gps_sub[1] = n.subscribe<gps_ksxt_msg::GPS_ksxt>(ugv[1]+"/gps",1000, boost::bind(&QNode::gps_callback,this,_1,1));
-    laser_sub[0] = n.subscribe<sensor_msgs::LaserScan>(ugv[0]+"/base_scan",1000, boost::bind(&QNode::laser_callback, this,_1,0));
-    laser_sub[1] = n.subscribe<sensor_msgs::LaserScan>(ugv[1]+"/base_scan",1000, boost::bind(&QNode::laser_callback, this,_1,1));
+    laser_sub[0] = n.subscribe<sensor_msgs::LaserScan>(ugv[0]+"/laser",1000, boost::bind(&QNode::laser_callback, this,_1,0));
+    laser_sub[1] = n.subscribe<sensor_msgs::LaserScan>(ugv[1]+"/laser",1000, boost::bind(&QNode::laser_callback, this,_1,1));
 
     start();
 
 }
 
+void QNode::control_elevator(int hight, bool sw){
+    left_motor::com motor;
+    motor.Data_1=hight;
+    motor.Data_2=sw;
+    motor_pub[car].publish(motor);
+}
 
 void QNode::set_goal(double x,double y,double z)
 {
@@ -263,22 +273,36 @@ void QNode::gps_callback(const gps_ksxt_msg::GPS_ksxtConstPtr &msg, int car){
         return ;
     }
 //    qDebug() << "gps car is " << car << endl;
-    emit gps_pos(msg->posqual, msg->headingqual,msg->east, msg->north);
+    emit gps_pos(msg->posqual, msg->headingqual,msg->east, msg->north, msg->heading);
 }
 
 void QNode::laser_callback(const sensor_msgs::LaserScanConstPtr &msg, int car){
     if(this->car != car) return ;
+//    qDebug() << "laser ang:" << msg->angle_increment <<" " << msg->angle_min << " " << msg->angle_max;
     float mindis=msg->range_max;
+    float angl=60*M_PI/180.0, angm=300*M_PI/180;    // filter angle range
+    float ang=0;
+    int cnt=0;
     for (auto dis : msg->ranges) {
+        cnt++;
+        ang += msg->angle_increment;
+
+        if(ang>=angl && ang<=angm)  //过滤激光雷达范围 (90-270)车体后面
+            continue;
         if(dis<=msg->range_min){
             continue;
         }
         if(dis < mindis )
             mindis = dis;
     }
-    if(mindis<1.0)
-        emit obs_meet(car);
-//    qDebug()<<"laser min dis " << mindis << endl;
+    if(mindis<0.4){
+        emit obs_meet(mindis,car);
+        meetObs=true;
+    }
+    else 
+        meetObs = false;
+        
+//    qDebug()<<"lasr count " << cnt << endl;
 }
 
 
@@ -289,8 +313,8 @@ void QNode::power_callback(const ros_four1_msg::four1ConstPtr &msg, int car)
     }
 //    qDebug() << "gps car is " << car << endl;
     double base_width=470;  // mm 轴距
-    double vel = (msg->FRSpeed+msg->FLSpeed)/2000;  // mm/s -> m/s
-    double angv = 2*(msg->FRSpeed-msg->FLSpeed)/base_width;
+    double vel = (msg->FRSpeed+msg->FLSpeed)/2000.0;  // mm/s -> m/s
+    double angv = 2.0*(msg->FRSpeed-msg->FLSpeed)/base_width;
     emit speed_vel(vel,angv);
     emit power_vel(msg->Voltage);
 }
@@ -327,7 +351,7 @@ void QNode::odom_callback(const nav_msgs::Odometry::ConstPtr &msg, int car)
     tf::Quaternion quat;
     tf::quaternionMsgToTF(msg->pose.pose.orientation, quat);
     double roll, pitch, yaw;//定义存储r\p\y的容器
-          tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);//进行转换
+    tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);//进行转换
     emit position(msg->pose.pose.position.x,msg->pose.pose.position.y, yaw);
 
 }

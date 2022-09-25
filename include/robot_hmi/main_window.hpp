@@ -21,9 +21,11 @@
 #include <QComboBox>
 #include <QQueue>
 #include <QSpinBox>
-#include "../RvizPanel/rvizpanel.h"
+#include "rvizpanel.h"
 #include "common.hpp"
 #include "purepusuit.h"
+#include "QMouseEvent"
+#include "ros_launch_manager.hpp"
 
 /*****************************************************************************
 ** Namespace
@@ -60,6 +62,19 @@ public:
     T1* set_spinbox(T2 *value);
     void setShadowEffect(QWidget * w);
 
+protected:
+    void mousePressEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event);
+    void mouseDoubleClickEvent(QMouseEvent *event) {
+        if(event->button() == Qt::LeftButton ) {
+            if(isMaximized()) showNormal();
+            else showMaximized();
+        }
+    }
+//    void enterEvent(QEvent* event);
+//    void leaveEvent(QEvent* event);
+//    void testEdge(QMouseEvent *event);  //检测鼠标是否接近窗口边缘
 
 public Q_SLOTS:
 	/******************************************
@@ -93,7 +108,7 @@ public Q_SLOTS:
     void startTimer();
     void stopTimer();
 
-    void slot_gps(int posqual, int headingqual, double x, double y);
+    void slot_gps(int posqual, int headingqual, double x, double y, double yaw);
     void set_track_path();
     void local_coor(double x, double y, double yaw);
     void slot_stopTrack();
@@ -102,15 +117,38 @@ public Q_SLOTS:
 
 private:
 	Ui::MainWindowDesign ui;
+    QPoint dragPosition;   //鼠标拖动的位置
+        enum {nodir,
+            top = 0x01,
+            bottom = 0x02,
+            left = 0x04,
+            right = 0x08,
+            topLeft = 0x01 | 0x04,
+            topRight = 0x01 | 0x08,
+            bottomLeft = 0x02 | 0x04,
+            bottomRight = 0x02 | 0x08
+        } resizeDir; //更改尺寸的方向
+
+    bool is_drag_ = false;  // drag window
+    QPoint mouse_start_point_;
+    QPoint window_start_point_;
+
     QNode qnode;
     PurePusuit* track;  // pure pursuit algorithm
 
-    JoyStick *vel_joy;  //left vel control
+//    JoyStick *vel_joy;  //left vel control
     JoyStick *omg_joy;  // right turn control
     QTimer *cmd_time;    // publish cmd
     QPair<float, float> vel;
 
+    ROSLaunchManager* roslaunch_slam=NULL;
+    pid_t slam_pid;
+    ROSLaunchManager* roslaunch_nav=NULL;
+    pid_t nav_pid;
     QProcess *laser_cmd;
+    QProcess *slam;
+    QProcess *nav;
+    QProcess *launch=NULL;   // gmapping launch;
 //    RvizMapLidar *rmap;
     RvizPanel   *rpanel;    
 
@@ -127,6 +165,10 @@ private:
     uint track_state=0;     // 0 start 1 pause
     bool param_fresh=false; // 是否需要刷新数据
 
+    // 轨迹采点
+    float sample_interval = 0.1;    // m
+    QString savepath;
+
 
 
     QString car0_qRosIp;
@@ -135,6 +177,7 @@ private:
     QString car1_qMasterIp;
 
     QString img_filepath;
+    QString map_filepath;
 
     int connectState = 0; // 0 is not connect, 1 is connect car0, 2 is connect car1;
     int volState = 0;   // 1 is low battery, 2 is enough battery;
@@ -142,10 +185,18 @@ private:
     QVector<QImage> img_vec;   // 批量保存图片
     QTimer *timer;          // record save image timer
 
-    QProcess *launch=NULL;   // gmapping launch;
+
 
     bool fullscreen=false;
+    bool fullwindow=false;
 
+    bool indoor=true;   // 默认室内
+
+    bool car_stop=false;
+    bool gps_qual=false;
+    bool imu_qual=false;
+
+    bool gpstest=false;
 };
 
 }  // namespace robot_hmi

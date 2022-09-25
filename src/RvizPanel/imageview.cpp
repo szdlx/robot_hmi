@@ -97,7 +97,11 @@ ImageView::ImageView(QWidget* parent, QString topic)
 
     screen_rect_ = new Ogre::Rectangle2D(true);
     screen_rect_->setCorners(-1.0f, 1.0f, 1.0f, -1.0f);
+#ifdef __linux__
     screen_rect_->setMaterial(material->getName());
+#elif __WIN32__
+    screen_rect_->setMaterial(material);
+#endif
     screen_rect_->setRenderQueueGroup(Ogre::RENDER_QUEUE_OVERLAY - 1);
     Ogre::AxisAlignedBox aabb;
     aabb.setInfinite();

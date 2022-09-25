@@ -113,5 +113,13 @@
         <file>images/select_path.png</file>
         <file>images/fullscren.png</file>
         <file>images/narrow.png</file>
+        <file>images/add.png</file>
+        <file>images/reduce.png</file>
+        <file>images/minimize.png</file>
+        <file>images/minscreen.png</file>
+        <file>images/close.png</file>
+        <file>images/fillscreen.png</file>
+        <file>images/zoom.png</file>
+        <file>images/全屏.png</file>
     </qresource>
 </RCC>

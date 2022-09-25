@@ -55,13 +55,17 @@ QPair<QPointF, QPair<double, double>> PurePusuit::cal_point_area(QPointF npos){
     }
     QVector<double> area;
     QVector<QPointF> areaPath;
+    double len=0;
+    auto [lx, ly] = word2vehicle({tx[startid],ty[startid]},ugv.s);
     for(int i=startid; i<tx.size();i++){
         auto [v_x, v_y] = word2vehicle({tx[i],ty[i]},ugv.s);
+        len += dis2point({lx,ly},{v_x,v_y});
         areaPath.push_back({v_x,v_y});
-        if(i>fmin(100+startid,tx.size())
-           || (tx[i]-ugv.s.x)*(tx[i]-ugv.s.x) + (ty[i]-ugv.s.y)*(ty[i]-ugv.s.y)>100 ){  // 预瞄距离最远10米
+        if(i>fmin(100+startid,tx.size()) //|| len>5   // 向前累加长度为5m
+           || (tx[i]-ugv.s.x)*(tx[i]-ugv.s.x) + (ty[i]-ugv.s.y)*(ty[i]-ugv.s.y)>25 ){  // 预瞄距离最远5米
             break;
         }
+        lx=v_x;ly=v_y;
     }
     double areaS = -1;  // 面积
     double areaV = -1;  //
@@ -135,11 +139,10 @@ QPair<double, double> PurePusuit::track_path(STATE sv){
 
 
     auto [lpoint, area] = cal_point_area(np);
+    lookpoint = lpoint;
     double s = area.first;
     QPointF dis = {lpoint.x()-traj->at(0).back(),lpoint.y()-traj->at(1).back()};
-    if(dis.manhattanLength() < 2 ){ //
 
-    }
     double alpha = atan2(lpoint.y()-sv.y, lpoint.x()-sv.x) ;
     qDebug() << "area:" << s << " alpha:" << alpha << " vt:" << sv.t << endl;
     alpha -= sv.t;
@@ -151,16 +154,24 @@ QPair<double, double> PurePusuit::track_path(STATE sv){
         ref_v = ugv.vmax*SV/(s+SV);
     else
         ref_v = fabs(alpha)*ugv.vmax*SV/( (s+SV)*sin(fabs(alpha)) );
-    qDebug() << "alpha:" << alpha << " vel:" << ref_v << " x/sinx " << fabs(alpha)/sin(fabs(alpha)) << endl;
+//    qDebug() << "alpha:" << alpha << " vel:" << ref_v << " x/sinx " << fabs(alpha)/sin(fabs(alpha)) << endl;
     ref_v = fmax(ugv.vmin, fmin(ref_v, ugv.vmax) );
     QPointF a = {sv.x-lpoint.x(),sv.y-lpoint.y()};
     double Ld = sqrtf( (sv.x-lpoint.x())*(sv.x-lpoint.x())+(sv.y-lpoint.y())*(sv.y-lpoint.y()) );//a.manhattanLength();
 
-    if(Ld < 0.05){
+    double disgoal=10000000;
+    if(lastInd>traj->at(0).size()/2){
+        double gx=traj->at(0).last();
+        double gy=traj->at(1).last();
+        disgoal=sqrtf( (sv.x-gx)*(sv.x-gx)+(sv.y-gy)*(sv.y-gy) );
+    }
+
+    if(disgoal < 0.05){
         ref_v = 0;
+        reset();
         emit track_finish();
     }
-    else if( Ld < 0.5 ){
+    else if( disgoal < 0.5 ){
         ref_v = fmin(0.1, ref_v);
     }
 //     转向角速度
@@ -169,7 +180,7 @@ QPair<double, double> PurePusuit::track_path(STATE sv){
         omega = 2*ref_v*sin(alpha)/Ld;
     else
         omega = 0.001;
-    qDebug() << "v:" << ref_v << "omega:" << omega << endl;
+//    qDebug() << "v:" << ref_v << "omega:" << omega << endl;
     return {ref_v, omega};
 }
 
@@ -202,4 +213,10 @@ QPair<double, double> PurePusuit::word2vehicle(QPointF wpos, STATE vpos){
     double x = (wpos.x()-vpos.x)*cos(t)+(wpos.y()-vpos.y)*sin(t);
     double y = -(wpos.x()-vpos.x)*sin(t)+(wpos.y()-vpos.y)*cos(t);
     return {x,y};
+}
+
+
+double PurePusuit::dis2point(QPair<double,double> pos1, QPair<double,double>pos2){
+    return sqrtf((pos1.first-pos2.first)*(pos1.first-pos2.first)
+                   +(pos1.second-pos2.second)*(pos1.second-pos2.second));
 }

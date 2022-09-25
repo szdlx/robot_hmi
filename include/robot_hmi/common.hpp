@@ -53,7 +53,7 @@ struct state{   // 车辆的状态量
     T y;
     T t;
 
-    inline qreal manhattanLength() const{
+    inline qreal dis() const{
         return sqrtf(x*x+y*y);
     };
     state &operator<<(state &s){ x=s.x;  y=s.y;  t=s.t; }

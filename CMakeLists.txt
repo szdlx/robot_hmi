@@ -6,21 +6,26 @@ cmake_minimum_required(VERSION 2.8.0)
 project(robot_hmi)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-#set(CMAKE_PREFIX_PATH /opt/ros/noetic)	# 这是ubuntu20.04  18： /opt/ros/medolic
+set(CMAKE_PREFIX_PATH /opt/ros/noetic)	# 这是ubuntu20.04  18： /opt/ros/medolic
 #添加c++11的支持
-set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
+#set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")   # windows不识别
+set(CMAKE_CXX_STANDARD 17)
+
 ##############################################################################
 # Catkin
 ##############################################################################
+# 解决ubuntu下迁移到windows平台的编码问题
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
 # qt_build provides the qt cmake glue, roscpp the comms for a default talker
-find_package(catkin REQUIRED COMPONENTS rviz roscpp sensor_msgs
+find_package(catkin REQUIRED COMPONENTS rviz roscpp rospy roslaunch sensor_msgs
     cv_bridge
     std_msgs
     image_transport
     )
+
+find_package(Eigen3 REQUIRED)
 
 find_package(Qt5 REQUIRED Core Widgets Multimedia Concurrent PrintSupport)
 set(QT_LIBRARIES Qt5::Widgets Qt5::Multimedia Qt5::Concurrent Qt5::PrintSupport)
@@ -76,6 +81,6 @@ file(GLOB_RECURSE QT_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINK
 ##############################################################################
 
 add_executable(robot_hmi ${QT_SOURCES} ${QT_RESOURCES_CPP} ${QT_FORMS_HPP} ${QT_MOC_HPP})
-target_link_libraries(robot_hmi ${QT_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(robot_hmi ${QT_LIBRARIES} ${catkin_LIBRARIES} Eigen3::Eigen)
 install(TARGETS robot_hmi RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 

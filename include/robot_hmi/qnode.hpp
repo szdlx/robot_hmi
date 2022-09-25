@@ -44,8 +44,9 @@
 
 
 
-#include "../robot_msg/four1.h"
-#include "GPS_ksxt.h"
+#include "four1.h"
+#include "GPS_ksxt.h"   //GPS ksxt报文 自定义消息
+#include "com.h"        // 控制升降机消息类型
 
 /*****************************************************************************
 ** Namespaces
@@ -70,6 +71,7 @@ public:
                                    const QSet<QString>& message_sub_types, const QList<QString>& transports);
     void set_cmd_vel(float linear,float angular);
     void sub_image(QString topic_name);
+    void control_elevator(int hight, bool sw);  //升降机高度与温度开关
     void set_goal(double x,double y,double z);
 	void run();
 	/*********************
@@ -90,14 +92,14 @@ public:
 Q_SIGNALS:
 	void loggingUpdated();
     void rosShutdown();
-    void speed_vel(float,float);
+    void speed_vel(float vel,float angv);
     void power_vel(float);
     void position(double x,double y,double z);
     void showMarker(QString topic, int car);
     void connectMasterSuccess(int car);
     void connectMasterFailed(int car);
-    void gps_pos(int posqual, int headingqual, double x, double y);
-    void obs_meet(int car);
+    void gps_pos(int posqual, int headingqual, double x, double y, double heading);
+    void obs_meet(float dis,int car);
 
 public slots:
     void cmd_output(int car);
@@ -109,6 +111,7 @@ private:
     ros::Publisher cmd_vel_pub[2];
     ros::Publisher goal_pub[2];
     ros::Publisher marker_pub[2];
+    ros::Publisher motor_pub[2];        // 控制升降机
 
     QStringListModel logging_model;
     ros::Subscriber odom_sub[2];
@@ -128,11 +131,16 @@ private:
 
 public:
     bool initFlag=false;    // 判断是否连接ros master成功
+    bool meetObs=false;
     uint car=0;     //
     int car0=0, car1=1;
     QVector<std::string> pathList;
     QVector<std::string> mapList;
     QVector<std::string> polyList;
+
+
+    float vmax[2], angmax[2];
+
 
 };
 

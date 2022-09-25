@@ -27,7 +27,8 @@ class JoyStick : public QWidget {
   };
  signals:
   void keyNumchanged(int num);
-  void keyPosChanged(QPointF pos);
+  void keyPosChanged(QPointF pos);      // 双摇杆控制，分别是线速度与角速度
+  void keyControl(float vel, float angle);    // 单个遥控控制，线速度与角速度
 
  protected:
   void paintEvent(QPaintEvent *event) override;
@@ -53,6 +54,7 @@ class JoyStick : public QWidget {
   int getKeyNum();
   QPointF getkeyPos();
   QPointF getCoorPos(QPointF pos);
+  void emitVel();
 };
 
 #endif  // JoyStick_H

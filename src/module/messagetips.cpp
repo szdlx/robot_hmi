@@ -44,7 +44,9 @@ void MessageTips::InitLayout()
     QTimer *mtimer = new QTimer(this);//隐藏的定时器
     mtimer->setTimerType(Qt::PreciseTimer);
     connect(mtimer,&QTimer::timeout,this,[=](){
-        if(opacityValue<=0){ this->close(); }
+        if(opacityValue<=0){
+            emit close();
+            this->close(); }
         opacityValue = opacityValue-closeSpeed;
         this->setWindowOpacity(opacityValue);    //设置窗口透明度
         });

@@ -18,11 +18,16 @@
 #include <QGraphicsDropShadowEffect>
 #include <iostream>
 
+#include <Eigen/Eigen>
+
 #include <QtConcurrent/QtConcurrent>
 #include <QSpinBox>
 #include <QDoubleSpinBox>
 #include "../include/robot_hmi/main_window.hpp"
 #include "messagetips.h"
+
+#include "SwitchButton.h"
+
 
 
 
@@ -45,28 +50,40 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 	ui.setupUi(this); // Calling this incidentally connects all ui's triggers to on_...() callbacks in this class.
     ui_init();
 
+//#ifdef 1
 //    获取rosmaster ip 和rosip ip
      foreach (QHostAddress address, QNetworkInterface::allAddresses()) { //
        if (address.protocol() == QAbstractSocket::IPv4Protocol) {
          QString addre = address.toString();
          if (addre.split(".")[0] == "192") {
            car0_qRosIp = addre;
-           car0_qMasterIp = "http://" + addre + ":11311";
+//           car0_qMasterIp = "http://" + addre + ":11311";
          } else if (addre.split(".")[0] == "10") {
            car0_qRosIp = addre;
-           car0_qMasterIp = "http://" + addre + ":11311";
+//           car0_qMasterIp = "http://" + addre + ":11311";
          } else if (addre.split(".")[0] == "172") {
            car0_qRosIp = addre;
-           car0_qMasterIp = "http://" + addre + ":11311";
+//           car0_qMasterIp = "http://" + addre + ":11311";
          }
        }
      }
-//    car0_qRosIp = "127.0.0.1";
-//    car0_qMasterIp = "http://127.0.0.1:11311";
-    
+    car0_qMasterIp = "http://" + car0_qRosIp + ":11311";   // 主机地址本机
+
+     connect(ui.rosmasteruri, &QLineEdit::editingFinished,[this]{
+         car0_qMasterIp=ui.rosmasteruri->text();
+     });
+
     ReadSettings();
+    ui.rosmasteruri->setText(car0_qMasterIp);
 
     track = new PurePusuit();   //
+
+    launch = new QProcess; // run roscore
+    launch->start("bash");  //
+    slam = new QProcess;
+    slam->start("base");
+    nav = new QProcess;
+    nav->start("base");
 
     connect_init(); // initial connect
 
@@ -74,6 +91,11 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 }
 
 void MainWindow::ui_init(){
+
+    resizeDir = nodir;   //初始化检测方向为无
+    setWindowFlags(Qt::FramelessWindowHint);  //设置无边框
+    setMouseTracking(true); //开启鼠标追踪
+    setMinimumSize(200, 200);
 
 //    setShadowEffect(ui.param_widget);
 //        setShadowEffect(ui.info_widget);
@@ -86,6 +108,7 @@ void MainWindow::ui_init(){
 //    setShadowEffect(ui.rviz_img);
     setShadowEffect(ui.panel_widget);
 //    setShadowEffect(ui.rviz_panel);
+    setShadowEffect(ui.widget_4);
 
 //    QFile qss("://images/qss/whiteBackground.qss");  //Ubuntu.qss
     QFile qss(":/qdarkstyle/light/lightstyle.qss"); // qss 设置界面皮肤
@@ -93,54 +116,73 @@ void MainWindow::ui_init(){
     qApp->setStyleSheet(qss.readAll());
     qss.close();
 
+    qApp->setFont(QFont("Microsoft YaHei"));
+
     // 摇杆控制初始化
-    vel_joy = new JoyStick(ui.velControl);
+//    vel_joy = new JoyStick(ui.velControl);
     omg_joy = new JoyStick(ui.omgControl);
-    setShadowEffect(vel_joy);
+//    setShadowEffect(vel_joy);
     setShadowEffect(omg_joy);
-    vel_joy->show();
+//    vel_joy->show();
     omg_joy->show();
 
     spacer = ui.space_path; // 弹簧
     rpanel = ui.rviz_panel; // rviz panel
     plot = ui.plot_road;
+
+    ui.horizontalWidget->setStyleSheet(".QWidget{background-color:#cdcdcd;border-radius:3px;}");
+    ui.info_widget->setStyleSheet(".QWidget{background-color:#ededed;border-radius:3px;}");
+
+    ui.indoor->setChecked(false);
+    ui.outdoor->setStyleSheet("color:black;");
+    ui.indoor->setStyleSheet("color:blue;");
+
+    ui.map_switch->setBgColorOff(QColor("#092e64"));
+    ui.map_switch->setTextOff("建图");
+    ui.map_switch->setTextOn("导航");
+    bool ischecked = ui.map_switch->checked();
+    ui.set_goal->setVisible(ischecked);
+    ui.set_start->setVisible(ischecked);
+    ui.save_map->setVisible(!ischecked);
+    ui.gmapping_btn->setVisible(!ischecked);
 }
 
+bool showtips=false;
 void MainWindow::connect_init(){
-    QObject::connect(ui.actionAbout_Qt, SIGNAL(triggered(bool)), qApp, SLOT(aboutQt())); // qApp is a global variable for the application
-    QObject::connect(ui.image_file, &QAction::triggered,this, [this]{
+//    QObject::connect(ui.actionAbout_Qt, SIGNAL(triggered(bool)), qApp, SLOT(aboutQt())); // qApp is a global variable for the application
+//    QObject::connect(ui.image_file, &QAction::triggered,this, [this]{
+//        QString existPath= img_filepath;//==""?"":img_filepath;
+//        img_filepath = QFileDialog::getExistingDirectory(this,tr("截图保存路径"),existPath);
+//    });     // set where to save image
+    connect(ui.img_path, &QPushButton::clicked, this,[this]{
         QString existPath= img_filepath;//==""?"":img_filepath;
         img_filepath = QFileDialog::getExistingDirectory(this,tr("截图保存路径"),existPath);
-    });     // set where to save image
+    });
+    connect(ui.map_path, &QPushButton::clicked, this, [this]{
+        QString existPath= map_filepath;//==""?"":img_filepath;
+        map_filepath = QFileDialog::getExistingDirectory(this,tr("slam建图保存路径"),existPath);
+    });
+
 
     connect(ui.car0_connect, &MyPushButton::doubleClicked,this, [this]{slot_car_connect(1);});
     connect(ui.car1_connect, &MyPushButton::doubleClicked,this, [this]{slot_car_connect(2);});
     connect(ui.indoor, &MyPushButton::doubleClicked,this, [this]{
+        indoor=true;
         ui.indoor->setChecked(false);
         ui.outdoor->setStyleSheet("color:black;");
         ui.indoor->setStyleSheet("color:blue;");
     });
     connect(ui.outdoor, &MyPushButton::doubleClicked,this,[this]{
+        indoor = false;
         ui.outdoor->setChecked(false);
         ui.indoor->setStyleSheet("color:black;");
         ui.outdoor->setStyleSheet("color:blue;");
     });
 
-    // 左摇杆 线速度控制
-    connect(vel_joy, &JoyStick::keyPosChanged, this, [this](QPointF pos){
-        vel.first = pos.y();
-        ui.pos_x->setText(QString::number(pos.x()));
-        ui.pos_y->setText(QString::number(pos.y()));
-    });
-    //  右摇杆 加速度控制
-    connect(omg_joy, &JoyStick::keyPosChanged, this, [this](QPointF pos){
-        vel.second = pos.x();
-        ui.pos_x_2->setText(QString::number(pos.x()));
-        ui.pos_y_2->setText(QString::number(pos.y()));
-    });
-    connect(ui.refresh_vel,&QPushButton::clicked,this, [this]{
-        if(!qnode.initFlag) return; //还未连接，不能刷新
-        changeComboex(ui.topics_vel,"geometry_msgs/Twist");
+    // 速度控制
+    connect(omg_joy, &JoyStick::keyControl, this, [this](float v, float ang){
+        vel={v*qnode.vmax[qnode.car],ang*qnode.angmax[qnode.car]};
+        // qDebug() << "vel" << vel << endl;
     });
     connect(ui.topics_vel, QOverload<int>::of(&QComboBox::currentIndexChanged), this,[this]{
         if(!qnode.initFlag) return;
@@ -164,37 +206,32 @@ void MainWindow::connect_init(){
         if(!qnode.initFlag) return ;
         rpanel->Set_Start_Pose();
     });
-    connect(ui.gmapping,&QPushButton::clicked, this, [=]{
-        if(!qnode.initFlag) return;
-        if(launch!=NULL) return;
-        launch = new QProcess; // run roscore
-        launch->start("bash");  //
-        QString bash = "roslaunch mission_sim_bringup gmapping_ugv0.launch\n";
-        qDebug()  << "bash" << endl;
-        launch->write(bash.toLocal8Bit());
-    });
-    connect(ui.pushButton_2, &QPushButton::clicked, this, [this]{
-        if(!qnode.initFlag) return ;
-        if(launch==NULL)    return;
-        launch->close();
-//        launch = NULL;
-    });
+
     connect(ui.gmapping_btn, &QPushButton::clicked, this, [this]{  //
         if(!qnode.initFlag) return;
-        if(launch!=NULL) return;
-        launch = new QProcess; // run roscore
-        launch->start("bash");  //
-        QString bash = "roslaunch mission_sim_bringup gmapping_ugv0.launch\n";
-        qDebug()  << "bash" << endl;
-        launch->write(bash.toLocal8Bit());
+
     });
-    connect(ui.savemap, &QPushButton::clicked, this, [this]{
+    connect(ui.save_map, &QPushButton::clicked, this, [this]{
         if(!qnode.initFlag) return ;
-        if( launch == NULL ) return ;
+        QDateTime datetime;
+        QString timestr=datetime.currentDateTime().toString("yyyy-MM-dd-HH-mm-ss");
+        QDir dir;
+        if (map_filepath.isEmpty())
+        {
+          map_filepath=dir.currentPath();
+        }
+        auto filepath = QString(map_filepath+"/"+timestr);
+        // 检查目录是否存在，若不存在则新建
+
+        if (!dir.exists(filepath))
+        {
+            bool res = dir.mkpath(filepath);
+           // qDebug() << "新建目录成功" << res;
+        }
         auto save = new QProcess;
         save->start("bash");
-        QString bash="rosrun map_server map_saver -f map \n";
-        launch->write(bash.toLocal8Bit());
+        QString bash=QString("rosrun map_server map_saver -f "+ filepath+"\n");
+        save->write(bash.toLocal8Bit());
     });
 
 
@@ -206,19 +243,27 @@ void MainWindow::connect_init(){
     connect(&qnode, &QNode::gps_pos, this, &MainWindow::slot_gps);
     connect(&qnode, &QNode::position, this, &MainWindow::local_coor);
     connect(&qnode, &QNode::speed_vel, this, &MainWindow::slot_update_dashboard);
-    connect(&qnode, &QNode::obs_meet, this, [=]{
+    connect(&qnode, &QNode::obs_meet, this, [=](float dis){
+
         if(track_state==1){
             if(isTracking){
                 ui.track_path->setText("继续跟踪");
                 ui.track_path->setChecked(false);
                 ui.track_path->setStyleSheet("color:black;");
-                isTracking=false;
-                QMessageBox::warning(NULL, "危险！", "前方遇到障碍物，请注意安全");
+                isTracking=false;                
             }
         }
-    });
-    connect(&qnode, &QNode::showMarker, this, [this](QString topic, int car ){
-        rpanel->showCarPose(topic, car);
+        if(showtips==0){
+            MessageTips *mMessageTips = new MessageTips(
+                        "前方"+QString::number(dis*100,'f',1)+"cm遇到障碍物，请注意安全",this);
+            mMessageTips->setStyleSheet("color:red;");
+            mMessageTips->setCloseTimeSpeed();
+            connect(mMessageTips,&MessageTips::close,[]{
+                showtips=0;
+            });
+            mMessageTips->show();
+        }
+        else showtips=true;
     });
 
     slot_set_param(road.type);
@@ -230,7 +275,7 @@ void MainWindow::connect_init(){
     });
     connect(ui.stop_track, &QPushButton::clicked, this,&MainWindow::slot_stopTrack );
     connect(ui.track_path, &QPushButton::clicked,this, [this]{  // lambda function
-        if(!qnode.initFlag) return;
+        if(!qnode.initFlag || !gps_qual&&!indoor || !imu_qual&&indoor) return;
         if(!track_state){
             track_state++;
             plot->clearPath();
@@ -239,6 +284,7 @@ void MainWindow::connect_init(){
             ui.track_path->setStyleSheet("color:blue;");
             pos0=posr; isTracking = true;
             plot->plotCar(0,0,0);
+//            qDebug() << QString("pos0: %1,%1,%1").arg(pos0.x).arg(pos0.y).arg(pos0.t);
         }
         else if(track_state==1){
             if(!isTracking){
@@ -267,25 +313,157 @@ void MainWindow::connect_init(){
     timer = new QTimer(this);   // image timer
     connect(timer, SIGNAL(timeout()), this, SLOT(timerSlot()));
 
-    connect(ui.close_w1, &QPushButton::clicked, [this]{
-        if(ui.verticalWidget_2->isVisible())
-            ui.verticalWidget_2->setVisible(false);
-        else
-            ui.verticalWidget_2->setVisible(true);
-        ui.horcontrolwidget->setVisible(false);
-    });
+//    connect(ui.close_w1, &QPushButton::clicked, [this]{
+//        if(ui.verticalWidget_2->isVisible())
+//            ui.verticalWidget_2->setVisible(false);
+//        else
+//            ui.verticalWidget_2->setVisible(true);
+//        ui.horcontrolwidget->setVisible(false);
+//    });
     connect(ui.screen_btn, &QPushButton::pressed, [this]{
         ui.widget_plot->setVisible(fullscreen);
         ui.verticalWidget_2->setVisible(fullscreen);
-        ui.horcontrolwidget->setVisible(fullscreen);
+        ui.gridWidget->setVisible(fullscreen);
         fullscreen=!fullscreen;
         if(fullscreen){
             ui.screen_btn->setText("缩小");
             ui.screen_btn->setIcon(QIcon(QString::fromLocal8Bit("://images/narrow.png")));
         }
         else{
-            ui.screen_btn->setText("全屏");
+            ui.screen_btn->setText("放大");
             ui.screen_btn->setIcon(QIcon(QString::fromLocal8Bit("://images/fullscren.png")));
+        }
+    });
+
+    //升降机高度
+    connect(ui.left_motor, &QSlider::valueChanged, [this](int val){
+        if(!qnode.initFlag){
+            ui.left_motor->setValue(0);
+            return;
+        }
+        qnode.control_elevator(val, ui.tmp_switch->checked());
+        ui.elevator_hight->setText("高度 "+QString::number(val)+"mm");
+//        ui.left_motor->setValue()
+         qDebug()<<"升降机高度:" << val << endl;
+    });
+    // 温度开关
+    connect(ui.tmp_switch, &SwitchButton::statusChanged, [this](bool status){
+        if(!qnode.initFlag)return;
+        qnode.control_elevator(ui.left_motor->value(), ui.tmp_switch->checked());
+    });
+    connect(ui.evelator_up, &QPushButton::clicked, [this]{ui.left_motor->setValue(fmin(500,ui.left_motor->value()+10));});
+    connect(ui.evelator_down, &QPushButton::clicked, [this]{ui.left_motor->setValue(fmax(0,ui.left_motor->value()-10));});
+
+    connect(ui.ang_slide, &QSlider::valueChanged, [this](int val){
+        if(!qnode.initFlag){
+            ui.ang_slide->setValue(0);
+            return;
+        }
+        ui.ang_val->setText(QString::number(val/100.0,'f',3)+"rad/s");
+        qnode.angmax[qnode.car] =  ui.ang_slide->value()/100.0;
+    });
+    connect(ui.ang_up, &QPushButton::clicked, [this]{
+        ui.ang_slide->setValue(fmin(100,ui.ang_slide->value()+10));});
+    connect(ui.ang_down, &QPushButton::clicked, [this]{
+        ui.ang_slide->setValue(fmax(0,ui.ang_slide->value()-10));});
+
+    connect(ui.vel_slider, &QSlider::valueChanged, [this](int val){
+        if(!qnode.initFlag){
+            ui.vel_slider->setValue(0);
+            return;
+        }
+        ui.vel_val->setText(QString::number(val/100.0,'f',3)+"cm/s");
+        qnode.vmax[qnode.car] =  ui.vel_slider->value()/100.0;
+    });
+    connect(ui.vel_add, &QPushButton::clicked, [this]{
+        ui.vel_slider->setValue(fmin(100,ui.vel_slider->value()+10));});
+    connect(ui.vel_down, &QPushButton::clicked, [this]{
+        ui.vel_slider->setValue(fmax(0,ui.vel_slider->value()-10));});
+
+    // 窗口处理
+    connect(ui.shutdown, &QPushButton::clicked, [this]{close();});  // close window
+    connect(ui.screen, &QPushButton::clicked,[this]{    //
+        if(isMaximized()){
+            showNormal();
+            ui.screen->setIcon(QIcon(QString::fromLocal8Bit("://images/zoom.png")));
+        }
+        else{
+            ui.screen->setIcon(QIcon(QString::fromLocal8Bit("://images/minscreen.png")));
+            showMaximized();    // 全屏
+        }
+    });
+    connect(ui.minumize, &QPushButton::clicked,[this]{showMinimized();});   // 最小化
+
+    connect(ui.pushButton,&QPushButton::clicked, [this]{
+        gpstest=1;
+        pos0 = posr;
+    });
+
+    connect(ui.local_ip, &QCheckBox::clicked,[this]{
+        ui.rosmasteruri->setEnabled(!(ui.local_ip->isChecked()));});
+
+    connect(ui.pushButton_3, &QPushButton::clicked, [this]{
+//        rviz= new QProcess;
+//        rviz->start("bash");  //
+//        QString bash = "rviz\n";
+//        // qDebug()  << "bash" << endl;
+//        rviz->write(bash.toLocal8Bit());
+    });
+    connect(ui.pushButton_5, &QPushButton::clicked, [this]{
+
+//        launch->kill();
+//        rviz->kill();
+//        QProcess* kill_process = new QProcess;
+//        QString str = "kill -9 " + QString::number(launch->processId());
+//        qDebug() << str;
+//        kill_process->start(str);
+//        bool started=kill_process->waitForStarted();
+//        qDebug()<<"Process started:"<<started<<kill_process->errorString();
+//        Q_ASSERT(started);
+    });
+
+    connect(ui.map_switch, &SwitchButton::statusChanged, [this]{
+        bool ischecked = ui.map_switch->checked();
+        ui.set_goal->setVisible(ischecked);
+        ui.set_start->setVisible(ischecked);
+        ui.save_map->setVisible(!ischecked);
+        ui.gmapping_btn->setVisible(!ischecked);
+        if(!qnode.initFlag) return ;
+        if(ischecked){  // navigation
+            if(roslaunch_slam!=NULL){
+                try {
+                    roslaunch_slam->stop(slam_pid, SIGINT);
+                }
+                catch (std::exception const &exception) {
+                    ROS_WARN("%s", exception.what());
+                }
+            }
+            if(roslaunch_nav==NULL) roslaunch_nav = new ROSLaunchManager;
+            try {
+                nav_pid = roslaunch_nav->start(
+                    "mission_sim_bringup", "mission_start.launch");
+            }
+            catch (std::exception const &exception) {
+                ROS_WARN("%s", exception.what());
+            }
+        }
+        else {  // slam
+            if(roslaunch_nav!=NULL){
+                try {
+                    roslaunch_nav->stop(nav_pid, SIGINT);
+                }
+                catch (std::exception const &exception) {
+                    ROS_WARN("%s", exception.what());
+                }
+            }
+            if(roslaunch_slam==NULL) roslaunch_slam = new ROSLaunchManager;
+            try {
+                slam_pid = roslaunch_slam->start(
+                    "car_slam", "karto_slam.launch");
+            }
+            catch (std::exception const &exception) {
+                ROS_WARN("%s", exception.what());
+            }
         }
     });
 }
@@ -301,12 +479,43 @@ void MainWindow::slot_stopTrack(){
     track->reset();
 }
 
-void MainWindow::slot_gps(int posqual, int headingqual, double x, double y){
+void MainWindow::slot_gps(int posqual, int headingqual, double x, double y, double yaw){
+
     QString text[]={"定位不可用","单点定位","RTK 浮点解","RTK 固定解"};
     ui.posqual->setText(text[posqual]);
     ui.headingqual->setText(text[headingqual]);
-    ui.gps_east->setText("east: "+QString::number(x,'f',3)+"m ");
-    ui.gps_north->setText("north: " + QString::number(y,'f',3)+"m ");
+    ui.gps_east->setText("东: "+QString::number(x,'f',2)+"m ");
+    ui.gps_north->setText("北: " + QString::number(y,'f',2)+"m ");
+    ui.gps_heading->setText("朝向: "+QString::number(yaw,'f',2)+"° ");
+    if(posqual==0||headingqual==0){
+        gps_qual = false;
+        ui.gps_east->setStyleSheet("color:red");
+        ui.gps_north->setStyleSheet("color:red");
+        ui.gps_heading->setStyleSheet("color:red");
+    } else {
+        gps_qual=true;
+        ui.gps_east->setStyleSheet("color:black");
+        ui.gps_north->setStyleSheet("color:black");
+        ui.gps_heading->setStyleSheet("color:black");
+    }
+
+    if(!indoor){    //南方向为0度方位角，顺时针为正
+        yaw += 90;
+        if(yaw>360)    // 改为东方向为x轴
+            yaw=yaw-360;
+        if(yaw>180){
+            yaw = 360-yaw;
+        } else
+            yaw = -yaw;
+        posr={x, y, yaw*M_PI/180.0}; // 要保存逆时针旋转为正
+        qDebug() << QString("outdoor p: %1,%2,%3").arg(x).arg(y).arg(yaw);
+    }
+    auto p = getXYT(posr);
+    char str[100];
+    sprintf(str, "gps x:%0.3lf, y:%0.3lf, yaw:%0.3lf", p.x, p.y, p.t*180/M_PI);
+    ui.label_3->setText(str);
+//    qDebug()<<QString("tmpxyt:%1,%2,%3").arg(p.x).arg(p.y).arg(p.t);
+
 }
 
 /**
@@ -447,6 +656,164 @@ void MainWindow::setShadowEffect(QWidget * w)
     w->setGraphicsEffect(effect);
 }
 
+void MainWindow::mousePressEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::LeftButton)
+    {
+        is_drag_ = true;
+        //获得鼠标的初始位置
+        mouse_start_point_ = event->globalPos();
+        //获得窗口的初始位置
+        window_start_point_ = this->frameGeometry().topLeft();
+        dragPosition = mouse_start_point_-window_start_point_;
+    }
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent* event)
+{
+//    //判断是否在拖拽移动
+    if (is_drag_)
+    {
+        //获得鼠标移动的距离
+        QPoint move_distance = event->globalPos() - mouse_start_point_;
+        //改变窗口的位置
+        this->move(window_start_point_ + move_distance);
+    }
+//    if (event->buttons() & Qt::LeftButton){                 //如果左键是按下的
+//            if(resizeDir == nodir){                             //如果鼠标不是放在边缘那么说明这是在拖动窗口
+//                move(event->globalPos() - dragPosition);
+//            }
+//            else{
+//                int ptop,pbottom,pleft,pright;                   //窗口上下左右的值
+//                ptop = frameGeometry().top();
+//                pbottom = frameGeometry().bottom();
+//                pleft = frameGeometry().left();
+//                pright = frameGeometry().right();
+//                if(resizeDir & top){                               //检测更改尺寸方向中包含的上下左右分量
+//                    if(height() == minimumHeight()){
+//                        ptop = fmin(event->globalY(),ptop);
+//                    }
+//                    else if(height() == maximumHeight()){
+//                        ptop = fmax(event->globalY(),ptop);
+//                    }
+//                    else{
+//                        ptop = event->globalY();
+//                    }
+//                }
+//                else if(resizeDir & bottom){
+//                    if(height() == minimumHeight()){
+//                        pbottom = fmax(event->globalY(),ptop);
+//                    }
+//                    else if(height() == maximumHeight()){
+//                        pbottom = fmin(event->globalY(),ptop);
+//                    }
+//                    else{
+//                        pbottom = event->globalY();
+//                    }
+//                }
+
+//                if(resizeDir & left){                        //检测左右分量
+//                    if(width() == minimumWidth()){
+//                        pleft = fmin(event->globalX(),pleft);
+//                    }
+//                    else if(width() == maximumWidth()){
+//                        pleft = fmax(event->globalX(),pleft);
+//                    }
+//                    else{
+//                        pleft = event->globalX();
+//                    }
+//                }
+//                else if(resizeDir & right){
+//                    if(width() == minimumWidth()){
+//                        pright = fmax(event->globalX(),pright);
+//                    }
+//                    else if(width() == maximumWidth()){
+//                        pright = fmin(event->globalX(),pright);
+//                    }
+//                    else{
+//                        pright = event->globalX();
+//                    }
+//                }
+//                setGeometry(QRect(QPoint(pleft,ptop),QPoint(pright,pbottom)));
+//            }
+//        }
+//        else testEdge(event);   //当不拖动窗口、不改变窗口大小尺寸的时候  检测鼠标边缘
+}
+void MainWindow::mouseReleaseEvent(QMouseEvent* event)
+{
+    //放下左键即停止移动
+    if (event->button() == Qt::LeftButton)
+    {
+        is_drag_ = false;
+    }
+//    if(resizeDir != nodir){         //还原鼠标样式
+//        testEdge(event);
+//    }
+}
+
+
+//void MainWindow::enterEvent(QEvent* event){
+//    QWidget::enterEvent(event);
+//}
+
+//void MainWindow::leaveEvent(QEvent* event){
+//    QApplication::setOverrideCursor(Qt::IBeamCursor);
+//    QWidget::leaveEvent(event);
+//}
+
+//void MainWindow::testEdge(QMouseEvent *event){
+//    int diffLeft = event->globalPos().x() - frameGeometry().left();      //计算鼠标距离窗口上下左右有多少距离
+//    int diffRight = event->globalPos().x() - frameGeometry().right();
+//    int diffTop = event->globalPos().y() - frameGeometry().top();
+//    int diffBottom = event->globalPos().y() - frameGeometry().bottom();
+
+//    Qt::CursorShape cursorShape;
+//    int EDGE_MARGIN=8;
+//    if(diffTop < EDGE_MARGIN && diffTop>=0){                              //根据 边缘距离 分类改变尺寸的方向
+//        if(diffLeft < EDGE_MARGIN && diffLeft>=0){
+//            resizeDir = topLeft;
+//            cursorShape = Qt::SizeFDiagCursor;
+//        }
+//        else if(diffRight > -EDGE_MARGIN && diffRight<=0){
+//            resizeDir = topRight;
+//            cursorShape = Qt::SizeBDiagCursor;
+//        }
+//        else{
+//            resizeDir = top;
+//            cursorShape = Qt::SizeVerCursor;
+//        }
+//    }
+//    else if(abs(diffBottom) < EDGE_MARGIN && diffBottom<=0){
+//        if(diffLeft < EDGE_MARGIN && diffLeft>=0){
+//            resizeDir = bottomLeft;
+//            cursorShape = Qt::SizeBDiagCursor;
+//        }
+//        else if(diffRight > -EDGE_MARGIN && diffRight<=0){
+//            resizeDir = bottomRight;
+//            cursorShape = Qt::SizeFDiagCursor;
+//        }
+//        else{
+//            resizeDir = bottom;
+//            cursorShape = Qt::SizeVerCursor;
+//        }
+//    }
+//    else if(abs(diffLeft) < EDGE_MARGIN){
+//        resizeDir = left;
+//        cursorShape = Qt::SizeHorCursor;
+//    }
+//    else if(abs(diffRight) < EDGE_MARGIN){
+//        resizeDir = right;
+//        cursorShape = Qt::SizeHorCursor;
+//    }
+//    else{
+//        resizeDir = nodir;
+//        cursorShape = Qt::ArrowCursor;
+//    }
+
+//    QApplication::setOverrideCursor(cursorShape);
+
+//}
+
 void MainWindow::saveImage()
 {
     if(!qnode.initFlag) return;
@@ -503,11 +870,38 @@ void MainWindow::onTopicChanged(int index){
  */
 state<double> MainWindow::getXYT(state<double> xyt){
 
-    state<double> s;
-    s=xyt-pos0;
-    s.x = s.x*cos(pos0.t)+s.y*sin(pos0.t);
-    s.y = s.y*cos(pos0.t)-s.x*sin(pos0.t);
+//    state<double> s;
+//    s=xyt-pos0;
+//    s.x = s.x*cos(pos0.t)+s.y*sin(pos0.t);
+//    s.y = s.y*cos(pos0.t)-s.x*sin(pos0.t);  // 要保存逆时针旋转为正
+//    if(s.t>M_PI) s.t -= 2*M_PI;
+//    else if( s.t<-M_PI) s.t += 2*M_PI;
+////    qDebug() << QString("state: %1,%2,%3").arg(s.x).arg(s.y).arg(s.t);
+
+//    return s;
+
+    Eigen::AngleAxisd rotzp0(pos0.t, Eigen::Vector3d::UnitZ());
+    Eigen::Matrix3d rotp0 = rotzp0.toRotationMatrix();
+    Eigen::Isometry3d p0;
+    p0 = rotp0;
+    p0.translation() = Eigen::Vector3d(pos0.x, pos0.y, 0);
+
+    Eigen::AngleAxisd rotzp1(xyt.t, Eigen::Vector3d::UnitZ());
+    Eigen::Matrix3d rotp1 = rotzp1.toRotationMatrix();
+    Eigen::Isometry3d p1;
+    p1 = rotp1;
+    p1.translation() = Eigen::Vector3d(xyt.x, xyt.y, 0);
+
+    Eigen::Isometry3d t12=p0.inverse() *p1;
+    Eigen::Matrix3d r12m=t12.rotation();
+    Eigen::Vector3d vt12=t12.translation();
+    Eigen::Vector3d eulerAngle=r12m.eulerAngles(0,1,2);
+//    std::cout<<"eulerAngle roll pitch yaw\n" << 180*eulerAngle.transpose()/M_PI<< std::endl;
+//    std::cout<<"t12="<<std::endl<< vt12.transpose()<< std::endl;
+
+    state<double> s={vt12.x(), vt12.y(), eulerAngle.z()};
     return s;
+
 }
 
 void MainWindow::road_value_set(){
@@ -541,7 +935,7 @@ void MainWindow::road_value_set(){
 
             px.append(cx+cos(ang)/k);
             py.append(-cy+sin(ang)/k);
-            qDebug() <<ang*180/3.14  << "x " << cx+cos(ang)/k <<",y" << -cy+sin(ang)/k <<endl;
+            // qDebug() <<ang*180/3.14  << "x " << cx+cos(ang)/k <<",y" << -cy+sin(ang)/k <<endl;
         }
         ang0=atan2(0-cy,L/2-3*L/4);   // atan2 返回的是以x轴顺时针旋转方向，范围 (-pi, pi)
         ang2=atan2(0-cy,L-3*L/4);
@@ -549,9 +943,9 @@ void MainWindow::road_value_set(){
             double ang = ang0+i*(ang2-ang0)/100;
             px.append(3*cx+cos(ang)/k);
             py.append(cy+sin(ang)/k);
-            qDebug() <<ang*180/3.14  << "x " << 3*cx+cos(ang)/k <<",y" << cy+sin(ang)/k <<endl;
+            // qDebug() <<ang*180/3.14  << "x " << 3*cx+cos(ang)/k <<",y" << cy+sin(ang)/k <<endl;
         }
-        qDebug() << "ang:" << ang0*180/3.14 << " " << ang2*180/3.14 << endl;
+        // qDebug() << "ang:" << ang0*180/3.14 << " " << ang2*180/3.14 << endl;
         plot->plotDot(L,0);
         plot->plotxy(px,py);
         track->setPath({px,py});
@@ -568,16 +962,25 @@ void MainWindow::road_value_set(){
     }
 }
 
+/**
+ * @brief 从里程计的获取局部坐标
+ * @param x
+ * @param y
+ * @param yaw
+ */
 void MainWindow::local_coor(double x, double y, double yaw){
+    imu_qual=true;
+    if(!indoor) return ;
     char str[100];
-    sprintf(str, "x:%0.3lf, y:%0.3lf, yaw:%0.3lf", x, y, yaw*180/M_PI);
-    ui.label_6->setText(tr(str));
+//    qDebug
     posr={x,y,yaw};
     auto p = getXYT(posr);
-    sprintf(str, "x:%0.3lf, y:%0.3lf, yaw:%0.3lf", p.x, p.y, p.t*180/M_PI);
-    ui.label_12->setText(tr(str));
+    sprintf(str, "odom x:%0.3lf, y:%0.3lf, yaw:%0.3lf", p.x, p.y, p.t*180/M_PI);
+    ui.label_4->setText(tr(str));
+//    qDebug()<<  str;
 }
 
+int cnt=0;
 void MainWindow::set_track_path(){
     if(param_fresh){
         param_fresh=false;
@@ -585,12 +988,52 @@ void MainWindow::set_track_path(){
     }
     if(!qnode.initFlag) return; //还未连接，不能刷新
 
+    if(cnt++>10){ // 0.5秒更新一次消息
+        cnt=0;
+        changeComboex(ui.topics_vel,"geometry_msgs/Twist");
+        changeComboex(ui.topics_img,"images");
+//        updateMapTopicList();
+    }
+
     if(!isTracking){ // 如果不是跟踪状态，启动遥控模式
         qnode.set_cmd_vel(vel.first, -vel.second);  // vel, angv
         return ;
     }
-    auto p = getXYT(posr);
+    if(!indoor&&gps_qual==false){    // GPS不可用，停车
+        qnode.set_cmd_vel(0,0);
+        slot_stopTrack();
+        if(showtips==0){
+            MessageTips *mMessageTips = new MessageTips(
+                        "GPS不可用",this);
+            mMessageTips->setStyleSheet("color:red;");
+            mMessageTips->setCloseTimeSpeed();
+            connect(mMessageTips,&MessageTips::close,[]{
+                showtips=0;
+            });
+            mMessageTips->show();
+        }
+        else showtips=true;
+    }
+    if(indoor&&imu_qual==false){
+        qnode.set_cmd_vel(0,0);
+        slot_stopTrack();
+        if(showtips==0){
+            MessageTips *mMessageTips = new MessageTips(
+                        "里程计不可用",this);
+            mMessageTips->setStyleSheet("color:red;");
+            mMessageTips->setCloseTimeSpeed();
+            connect(mMessageTips,&MessageTips::close,[]{
+                showtips=0;
+            });
+            mMessageTips->show();
+        }
+        else showtips=true;
+    }
 
+    auto p = getXYT(posr);
+//    qDebug() << "p:" << p.x << " " << p.y << " " << p.t << endl;
+
+//    cmd_time->timerId()
     if(!road.type){ // 跟踪直线路径的多个路径段
         if(st_state%2){
             qnode.set_cmd_vel(-0.5,0);
@@ -611,17 +1054,21 @@ void MainWindow::set_track_path(){
             ui.track_path->setStyleSheet("color:black;");
         }
         else {
+//            qDebug()<<"test 0\n";
             plot->plotPath(p.x,st_state);    //
             plot->plotCar(p.x, st_state, 0);
         }
     }
     else if(road.type==1){
+        qDebug()<<"test 1\n";
         plot->plotPath(p.x,p.y);    //
         plot->plotCar(p.x, p.y, p.t);
         auto [vx, va] = track->track_path({p.x, p.y, p.t});
+        plot->plotDot(track->lookpoint.x(),track->lookpoint.y());
         qnode.set_cmd_vel(vx, va);  // vel, angv
 
     } else if(road.type==2){
+//        qDebug()<<"test 2\n";
         plot->plotPath(p.x,p.y);    //
         plot->plotCar(p.x, p.y, p.t);
         if( st_state==0){
@@ -629,34 +1076,42 @@ void MainWindow::set_track_path(){
             if(p.t >= M_PI/2)
                 st_state++;
         } else if( st_state==1){
+            QTime timedebuge;//声明一个时钟对象
+                timedebuge.start();//开始计时
             auto [vx, va] = track->track_path({p.x, p.y, p.t});
+            qDebug()<<"纯跟踪耗时: "<<timedebuge.elapsed()<<"ms";//输出计时
+            plot->plotDot(track->lookpoint.x(),track->lookpoint.y());
             qnode.set_cmd_vel(vx, va);  // vel, angv
+//            qDebug()<<"vel:" << vx << " " << va << endl;
         }
     }
+
 
 }
 
 void MainWindow::slot_set_param(int index){
-    qDebug() << "selected path type " << index << endl;
+    // qDebug() << "selected path type " << index << endl;
+//    ui.track_path->setVisible(true);
+//    ui.stop_track->setVisible(true);
     auto layout = ui.param_widget->layout();    
     for(auto var: pathWidgets){
-        qDebug() << "delete " <<  var->objectName()<< endl;
+        // qDebug() << "delete " <<  var->objectName()<< endl;
         layout->removeWidget(var);
         var->deleteLater();
         update();
     }
     while(!pathWidgets.empty()) pathWidgets.pop_back();
     if(!index){
-        ui.label_cur->setText("路径长度/m");
-        auto len_spinbox = set_spinbox<QDoubleSpinBox, double>(&road.st_road.len);
+//        ui.label_cur->setText("路径长度/m");
+//        auto len_spinbox = set_spinbox<QDoubleSpinBox, double>(&road.st_road.len);
         auto label_st = new QLabel(ui.param_widget);
         label_st->setText("路径组合数");
         label_st->setObjectName("label_st");
         auto spin_st = set_spinbox<QSpinBox, int>(&road.st_road.num);
-        layout->addWidget(len_spinbox);
+//        layout->addWidget(len_spinbox);
         layout->addWidget(label_st);
         layout->addWidget(spin_st);
-        pathWidgets.push_back(len_spinbox);
+//        pathWidgets.push_back(len_spinbox);
         pathWidgets.push_back(label_st);
         pathWidgets.push_back(spin_st);
 
@@ -703,7 +1158,8 @@ void MainWindow::slot_set_param(int index){
         pathWidgets.push_back(w2);
     }
     else if(index == 1){
-        ui.label_cur->setText("路径长度/m");
+        auto label = new QLabel(ui.param_widget);
+        label->setText("路径长度/m");
         auto len_spinbox = set_spinbox<QDoubleSpinBox, double>(&road.c_road.len);
         auto spinbox_cur = set_spinbox<QDoubleSpinBox, double>(&road.c_road.cur);
         spinbox_cur->setDecimals(4);    // 小数点
@@ -712,18 +1168,28 @@ void MainWindow::slot_set_param(int index){
         auto label_cur = new QLabel(ui.param_widget);
         label_cur->setText("路径曲率/rad");
         label_cur->setObjectName("label_cur");
+        layout->addWidget(label);
         layout->addWidget(len_spinbox);
         layout->addWidget(label_cur);
         layout->addWidget(spinbox_cur);
+        pathWidgets.push_back(label);
         pathWidgets.push_back(len_spinbox);
         pathWidgets.push_back(label_cur);
         pathWidgets.push_back(spinbox_cur);
     }
-    else if(index==2){
-        ui.label_cur->setText("半径/m");
+    else if(index==2){  //
+//        ui.label_cur->setText("半径/m");
+        auto label = new QLabel("半径/m",ui.param_widget);
         auto len_spinbox = set_spinbox<QDoubleSpinBox,double>(&road.radius);
+        pathWidgets.push_back(label);
         pathWidgets.push_back(len_spinbox);
+        layout->addWidget(label);
         layout->addWidget(len_spinbox);
+    }
+    else if(index==3){  // 轨迹采点
+//        ui.track_path->setVisible(false);
+//        ui.stop_track->setVisible(false);
+
     }
     layout->removeItem(spacer);
     spacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -743,7 +1209,7 @@ T1* MainWindow::set_spinbox( T2 *value){
     // 当信号有重载时，需要用QOverload<double>::of来处理，否则无法使用lambda函数
 //    qDebug() << "value change : " << *value<< endl;
     connect(len_spinbox,QOverload<T2>::of(&T1::valueChanged),[this,value](T2 val){
-        qDebug()  << "set value " << val;
+//        qDebug()  << "set value " << val;
         if(*value!=val){
             *value = val;
             param_fresh=true;
@@ -829,6 +1295,9 @@ void MainWindow::connectSuccess(int car){
     connectState = car;   //
     qnode.car=car-1;
     if( isTracking ) slot_stopTrack();   //
+
+    ui.vel_slider->setValue(qnode.vmax[qnode.car]*100);
+    ui.ang_slide->setValue(qnode.angmax[qnode.car]*100);
 }
 
 void MainWindow::connectFailed(int car){
@@ -852,11 +1321,13 @@ bool MainWindow::connectMaster(QString master_ip, QString ros_ip, int car) {
 
 void MainWindow::slot_car_connect(int car){
     if(connectState==car) return ;    // has connect
-    if( car == 1){        
-        connectMaster(car0_qMasterIp, car0_qRosIp, 1);
+    QString master= car0_qMasterIp;
+    if(ui.local_ip->isChecked()) master="http://"+car0_qRosIp+ ":11311";
+    if( car == 1){
+        connectMaster(master, car0_qRosIp, 1);
     }
     else{        
-        connectMaster(car1_qMasterIp, car1_qRosIp, 2);
+        connectMaster(master, car1_qRosIp, 2);
     }
 }
 
@@ -894,8 +1365,10 @@ void MainWindow::slot_update_power(float value)
 
 void MainWindow::slot_update_dashboard(float x,float y)
 {
-    ui.label_vel->setText(QString::number(x,'f',2));
-    ui.label_rad->setText(QString::number(y,'f',2));
+    QString sx=" ",sy=" ";
+    if(x<0) sx="-"; if(y<0) sy="-";
+    ui.label_vel->setText(QString(sx+"%1").arg(abs(x),4,'f',2));
+    ui.label_rad->setText(QString(sy+"%1").arg(abs(y),4,'f',2));
 }
 
 MainWindow::~MainWindow() {
@@ -924,15 +1397,28 @@ void MainWindow::ReadSettings() {
     qRegisterMetaType<road_data>("road_data");//注册结构体
     QSettings settings("Qt-Ros Package", "robot_hmi");
     img_filepath = settings.value("img_filepath").toString();
+    map_filepath = settings.value("map_filepath").toString();
     QVariant v = settings.value("road");
     road = v.value<road_data>();   // struct
+    //
+    qnode.vmax[0] = settings.value("vmax0").toFloat();
+    qnode.vmax[1] = settings.value("vmax1").toFloat();
+    qnode.angmax[0] = settings.value("angmax0").toFloat();
+    qnode.angmax[1] = settings.value("angmax1").toFloat();
+    QString ip = settings.value("master_ip").toString();
+    if(ip!="") car0_qMasterIp = ip;
 }
 
 void MainWindow::WriteSettings() {
-
     QSettings settings("Qt-Ros Package", "robot_hmi");
     settings.setValue("img_filepath",img_filepath);
+    settings.setValue("map_filepath",map_filepath);
     settings.setValue("road",QVariant::fromValue(road));   // struct
+    settings.setValue("vmax0",qnode.vmax[0]);
+    settings.setValue("vmax1",qnode.vmax[1]);
+    settings.setValue("angmax0",qnode.angmax[0]);
+    settings.setValue("angmax1",qnode.angmax[1]);
+    settings.setValue("master_ip",car0_qMasterIp);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
