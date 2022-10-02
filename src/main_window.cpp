@@ -78,9 +78,6 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 
     track = new PurePusuit();   //
 
-    launch = new QProcess; // run roscore
-    launch->start("bash");  //
-
     connect_init(); // initial connect
 
 
@@ -141,6 +138,9 @@ void MainWindow::ui_init(){
     ui.set_start->setVisible(ischecked);
     ui.save_map->setVisible(!ischecked);
     ui.gmapping_btn->setVisible(!ischecked);
+
+    ui.widget_5->setVisible(false);
+
 }
 
 bool showtips=false;
@@ -205,7 +205,8 @@ void MainWindow::connect_init(){
 
     connect(ui.gmapping_btn, &QPushButton::clicked, this, [this]{  //
         if(!qnode.initFlag) return;
-
+        qnode.roslaunch(0);
+        updateMapTopicList();
     });
     connect(ui.save_map, &QPushButton::clicked, this, [this]{
         if(!qnode.initFlag) return ;
@@ -228,6 +229,11 @@ void MainWindow::connect_init(){
         save->start("bash");
         QString bash=QString("rosrun map_server map_saver -f "+ filepath+"\n");
         save->write(bash.toLocal8Bit());
+        MessageTips *mMessageTips = new MessageTips(
+                    "slam建图保存在路径:"+filepath //+"\n在菜单中设置保存路径"
+                    ,this);
+        mMessageTips->setStyleSheet("border-radius:5px;text-align:center;background: rgb(211, 215, 207); border: none;");
+        mMessageTips->show();
     });
 
 
@@ -388,6 +394,7 @@ void MainWindow::connect_init(){
         pos0 = posr;
     });
 
+    ui.rosmasteruri->setEnabled(!(ui.local_ip->isChecked()));
     connect(ui.local_ip, &QCheckBox::clicked,[this]{
         ui.rosmasteruri->setEnabled(!(ui.local_ip->isChecked()));});
 
@@ -404,6 +411,7 @@ void MainWindow::connect_init(){
         ui.gmapping_btn->setVisible(!ischecked);
         if(!qnode.initFlag) return ;
         qnode.roslaunch(ischecked);
+        updateMapTopicList();
     });
 }
 
@@ -1260,8 +1268,15 @@ bool MainWindow::connectMaster(QString master_ip, QString ros_ip, int car) {
 
 void MainWindow::slot_car_connect(int car){
     if(connectState==car) return ;    // has connect
+    if(ui.local_ip->isChecked()){
+        if ( !qnode.init(car) ) {   // 如果roscore没打开，通过执行命令打开
+            return ;
+        }
+        else
+            connectSuccess(car);
+        return ;
+    }
     QString master= car0_qMasterIp;
-    if(ui.local_ip->isChecked()) master="http://"+car0_qRosIp+ ":11311";
     if( car == 1){
         connectMaster(master, car0_qRosIp, 1);
     }
@@ -1346,6 +1361,7 @@ void MainWindow::ReadSettings() {
     qnode.angmax[1] = settings.value("angmax1").toFloat();
     QString ip = settings.value("master_ip").toString();
     if(ip!="") car0_qMasterIp = ip;
+    ui.local_ip->setChecked(settings.value("isLocal").toBool());
 }
 
 void MainWindow::WriteSettings() {
@@ -1358,6 +1374,7 @@ void MainWindow::WriteSettings() {
     settings.setValue("angmax0",qnode.angmax[0]);
     settings.setValue("angmax1",qnode.angmax[1]);
     settings.setValue("master_ip",car0_qMasterIp);
+    settings.setValue("isLocal",ui.local_ip->isChecked());
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)

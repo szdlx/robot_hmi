@@ -161,8 +161,6 @@ private:
     float sample_interval = 0.1;    // m
     QString savepath;
 
-
-
     QString car0_qRosIp;
     QString car0_qMasterIp;
     QString car1_qRosIp;
@@ -176,8 +174,6 @@ private:
     int img_state=0;   // 判断截图是否开始 1 is start, 2 is end
     QVector<QImage> img_vec;   // 批量保存图片
     QTimer *timer;          // record save image timer
-
-
 
     bool fullscreen=false;
     bool fullwindow=false;

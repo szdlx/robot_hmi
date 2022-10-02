@@ -42,10 +42,13 @@ namespace robot_hmi {
 
 QNode::QNode(int argc, char** argv ) :
 	init_argc(argc),
-	init_argv(argv)
+    init_argv(argv),
+    car(0)  //
 	{}
 
 QNode::~QNode() {
+
+    control_elevator(0,0);
     if(ros::isStarted()) {
       ros::shutdown(); // explicitly needed since we use ros::start();
 
@@ -70,10 +73,11 @@ QNode::~QNode() {
         }
     }
 
+
 	wait();
 }
 
-bool QNode::init() {
+bool QNode::init(int car) {
 	ros::init(init_argc,init_argv,"robot_hmi");
 	if ( ! ros::master::check() ) {
         initFlag = false;
@@ -81,6 +85,7 @@ bool QNode::init() {
 	}
     if(!initFlag)
         init_set();
+    emit connectMasterSuccess(car);    // connect ROS master success;
 	return true;
 }
 
@@ -219,21 +224,17 @@ bool QNode::init(const std::string &master_url, const std::string &host_url, int
 	remappings["__hostname"] = host_url;
 	ros::init(remappings,"robot_hmi");
     qDebug() << "test\n";
-	if ( ! ros::master::check() ) {
-        roscore = new QProcess; // run roscore
-        roscore->start("bash");
-        QString bash = "roscore\n";
-        qDebug()  << "bash" << endl;
-        roscore->write(bash.toLocal8Bit());
-//        connect(roscore,&QProcess::readyReadStandardOutput,this,[=]{cmd_output(car);});
-        roscore->waitForFinished(1500); // 等待1s
-//        wait(5000);  // wait roscore run success
-        cmd_output(car);
+    ros::Time::init();
+    if (!ros::master::check())
+    {
+        initFlag=false;
         return false;
-	}
-    if(!initFlag)
+    }
+    std::cout << "master started!" << std::endl;
+    if(!initFlag)   // 避免重复初始化
         init_set();
     emit connectMasterSuccess(car);    // connect ROS master success;
+
     return true;
 }
 
@@ -316,7 +317,7 @@ void QNode::laser_callback(const sensor_msgs::LaserScanConstPtr &msg, int car){
         if(dis < mindis )
             mindis = dis;
     }
-    if(mindis<0.4){
+    if(mindis<0.5){
         emit obs_meet(mindis,car);
         meetObs=true;
     }
@@ -379,6 +380,9 @@ void QNode::odom_callback(const nav_msgs::Odometry::ConstPtr &msg, int car)
 
 void QNode::set_cmd_vel(float linear,float angular)
 {
+    if(meetObs) {
+        if(linear>0) linear=0;
+    }
 //    qDebug() << "control vel:" << linear << angular << endl;
     geometry_msgs::Twist twist;
     twist.linear.x=1*linear;
@@ -473,8 +477,9 @@ void QNode::roslaunch(bool checked){
         }
         if(roslaunch_slam==NULL) roslaunch_slam = new ROSLaunchManager;
         try {
-            slam_pid = roslaunch_slam->start(
-                "car_slam", "karto_slam.launch");
+            if(slam_pid==-1 )
+                slam_pid = roslaunch_slam->start(
+                    "car_slam", "karto_slam.launch");
         }
         catch (std::exception const &exception) {
             ROS_WARN("%s", exception.what());

@@ -65,7 +65,8 @@ protected:
     rviz::Display* marker2=NULL;
     rviz::Display* goal=NULL;
 
-
+    std::set<std::string> plist;
+    std::set<std::string> polylist;
     QSettings settings;
     QString type_name;
     bool inited;

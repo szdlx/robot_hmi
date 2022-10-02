@@ -17,7 +17,7 @@ PurePusuit::PurePusuit(STATE s)
     start = s ;
     traj = new QVector<QVector<double>>(2);
     ugv.setRange({-1,1},{-1,1}); // 分别设置速度与角速度的范围 m/s rad/s
-    ugv.lmax = 2;   // m    最大的预瞄距离
+    ugv.lmax = 1;   // m    最大的预瞄距离
     SV = 0.15;   // 面积预瞄阈值
     ST = 0.2;  // 速度的面积预瞄阈值
 }
@@ -181,6 +181,7 @@ QPair<double, double> PurePusuit::track_path(STATE sv){
     else
         omega = 0.001;
 //    qDebug() << "v:" << ref_v << "omega:" << omega << endl;
+    omega = fmax(ugv.amin,fmin(ugv.amax,omega));
     return {ref_v, omega};
 }
 

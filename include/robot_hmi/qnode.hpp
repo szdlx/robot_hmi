@@ -65,7 +65,7 @@ class QNode : public QThread {
 public:
 	QNode(int argc, char** argv );
 	virtual ~QNode();
-	bool init();
+    bool init(int car);
     bool init(const std::string &master_url, const std::string &host_url, int car);
     void init_set();
     QList<QString> getTopics(const QString& message_types);    //La

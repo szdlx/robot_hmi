@@ -196,6 +196,7 @@ void RvizPanel::polyfootprint(const QVector<std::string>& poly){
     QString color[]={"255;00;255;","255;0;0;","0;0;255","0;255;255","0;0;0"};
     int cnt=0;
     for (std::string topic : poly) {
+        if(polylist.count(topic)) continue;
         auto poly=manager->createDisplay("rviz/Polygon","mypoly",true);
         poly->subProp("Topic")->setValue(topic.c_str());
         poly->subProp("Color")->setValue(color[cnt++]);
@@ -203,13 +204,17 @@ void RvizPanel::polyfootprint(const QVector<std::string>& poly){
 //        path->subProp("")
     }
     manager->startUpdate();
+    polylist= std::set<std::string>(poly.begin(),poly.end());
 }
 
+
 void RvizPanel::showPath(const QVector<std::string>& pathList){
+
     if(pathList.empty()) return ;
     QString color[]={"255;00;255;","255;0;0;","0;0;255","0;255;255","0;0;0"};
     int cnt=0;
     for (std::string topic : pathList) {
+        if(plist.count(topic)) continue;
         auto path=manager->createDisplay("rviz/Path","mypath",true);
         path->subProp("Topic")->setValue(topic.c_str());
         path->subProp("Color")->setValue(color[cnt++]);
@@ -217,6 +222,7 @@ void RvizPanel::showPath(const QVector<std::string>& pathList){
 //        path->subProp("")
     }
     manager->startUpdate();
+    plist= std::set<std::string>(pathList.begin(),pathList.end());
 }
 
 
