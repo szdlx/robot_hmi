@@ -50,3 +50,11 @@ rosrun robot_hmi robot_hmi
 * 添加全屏模式，方便对地图操作
 
 ![](https://github.com/lrm2017/robot_hmi/blob/main/%E6%95%88%E6%9E%9C%E5%9B%BE/%E5%85%A8%E5%B1%8F%E5%AF%BC%E8%88%AA.png?raw=true)
+
+
+
+
+
+## 联系方式
+
+邮箱：liangrongmin@foxmail.com 
