@@ -28,7 +28,13 @@
 #include "qnode.hpp"
 #include "four1.h"
 
+#ifdef __linux__
+ #include <signal.h>
+ #include <sys/types.h>
+ #include <sys/wait.h>
+#else
 
+#endif
 
 /*****************************************************************************
 ** Namespaces
@@ -41,37 +47,54 @@ namespace robot_hmi {
 *****************************************************************************/
 
 QNode::QNode(int argc, char** argv ) :
-	init_argc(argc),
-    init_argv(argv),
-    car(0)  //
-	{}
+    init_argc(argc), init_argv(argv), car(0){
+    karto_ = std::shared_ptr<QProcess>(new QProcess(this));
+    nav_ = std::shared_ptr<QProcess>(new QProcess(this));
+}
 
 QNode::~QNode() {
 
     control_elevator(0,0);
+    if(karto_->state()==QProcess::Running){
+#ifdef __linux__
+        ::kill(karto_->processId(),SIGINT); //
+#else   //windows kill process
+       QProcess::execute("taskkill", {"/pid", QString::number(karto_->processId()), "/t", "/f"});
+#endif
+    }
+    if(nav_->state()==QProcess::Running){
+#ifdef __linux__
+        ::kill(nav_->processId(),SIGINT); //
+#else   //windows kill process
+        QProcess::execute("taskkill", {"/pid", QString::number(nav_->processId()), "/t", "/f"});
+#endif
+    }
     if(ros::isStarted()) {
       ros::shutdown(); // explicitly needed since we use ros::start();
 
       ros::waitForShutdown();
     }
-    if(nav_pid!=-1){
-        try {
-            roslaunch_nav->stop(nav_pid, SIGINT);
-            nav_pid=-1;
-        }
-        catch (std::exception const &exception) {
-            ROS_WARN("%s", exception.what());
-        }
-    }
-    if(slam_pid!=-1){
-        try {
-            roslaunch_slam->stop(slam_pid, SIGINT);
-            slam_pid = -1;
-        }
-        catch (std::exception const &exception) {
-            ROS_WARN("%s", exception.what());
-        }
-    }
+    qDebug() << "karto state " << karto_->state() << endl;
+    qDebug() << "nav_ state " << nav_->state() << endl;
+
+//    if(nav_pid!=-1){
+//        try {
+//            roslaunch_nav->stop(nav_pid, SIGINT);
+//            nav_pid=-1;
+//        }
+//        catch (std::exception const &exception) {
+//            ROS_WARN("%s", exception.what());
+//        }
+//    }
+//    if(slam_pid!=-1){
+//        try {
+//            roslaunch_slam->stop(slam_pid, SIGINT);
+//            slam_pid = -1;
+//        }
+//        catch (std::exception const &exception) {
+//            ROS_WARN("%s", exception.what());
+//        }
+//    }
 
 
 	wait();
@@ -240,8 +263,8 @@ bool QNode::init(const std::string &master_url, const std::string &host_url, int
 
 void QNode::init_set(){
     initFlag = true;
-    nav_pid = -1;
-    slam_pid = -1;
+//    nav_pid = -1;
+//    slam_pid = -1;
     ros::start(); // explicitly needed since our nodehandle is going out of scope.
     ros::NodeHandle n;
     std::string ugv[2] ={"/UGV0", "/UGV1"};
@@ -447,43 +470,68 @@ void QNode::log( const LogLevel &level, const std::string &msg) {
 
 void QNode::roslaunch(bool checked){
     if(checked){  // navigation
-        if(slam_pid!=-1){
-            try {
-                roslaunch_slam->stop(slam_pid, SIGINT);
-                slam_pid = -1;
-            }
-            catch (std::exception const &exception) {
-                ROS_WARN("%s", exception.what());
-            }
+        // QProcess can't closee all pid
+        if(karto_->state()==QProcess::Running){
+            qDebug()<<"kartor is running" << endl;
+#ifdef __linux__
+            ::kill(karto_->processId(),SIGINT); // qprocess 只能调用sigkill信号，无法杀死子进程
+#else   //windows kill process
+        QProcess::execute("taskkill", {"/pid", QString::number(karto_->processId()), "/t", "/f"});
+#endif
         }
-        if(roslaunch_nav==NULL) roslaunch_nav = new ROSLaunchManager;
-        try {
-            nav_pid = roslaunch_nav->start(
-                "mission_sim_bringup", "mission_start.launch");
+        if(nav_->state()==QProcess::NotRunning){
+            nav_->start("roslaunch",{"mission_sim_bringup", "mission_start.launch"});
         }
-        catch (std::exception const &exception) {
-            ROS_WARN("%s", exception.what());
-        }
+//        if(slam_pid!=-1){
+//            try {
+//                roslaunch_slam->stop(slam_pid, SIGINT);
+//                slam_pid = -1;
+//            }
+//            catch (std::exception const &exception) {
+//                ROS_WARN("%s", exception.what());
+//            }
+//        }
+//        if(roslaunch_nav==NULL) roslaunch_nav = new ROSLaunchManager;
+//        try {
+//            nav_pid = roslaunch_nav->start(
+//                "mission_sim_bringup", "mission_start.launch");
+//        }
+//        catch (std::exception const &exception) {
+//            ROS_WARN("%s", exception.what());
+//        }
     }
     else {  // slam
-        if(nav_pid!=-1){
-            try {
-                roslaunch_nav->stop(nav_pid, SIGINT);
-                nav_pid=-1;
-            }
-            catch (std::exception const &exception) {
-                ROS_WARN("%s", exception.what());
-            }
+
+        if(nav_->state()==QProcess::Running){
+            qDebug()<<"nav_ is running" << endl;
+#ifdef __linux__
+            ::kill(nav_->processId(),SIGINT); // qprocess 只能调用sigkill信号，无法杀死子进程
+#else   //windows kill process
+            QProcess::start("taskkill", {"/pid", QString::number(nav_->processId()), "/t", "/f"});
+#endif
         }
-        if(roslaunch_slam==NULL) roslaunch_slam = new ROSLaunchManager;
-        try {
-            if(slam_pid==-1 )
-                slam_pid = roslaunch_slam->start(
-                    "car_slam", "karto_slam.launch");
+        if(karto_->state()==QProcess::NotRunning){
+            karto_->start("roslaunch",{"car_slam", "karto_slam.launch"});
         }
-        catch (std::exception const &exception) {
-            ROS_WARN("%s", exception.what());
-        }
+
+//        if(nav_pid!=-1){
+//            try {
+//                roslaunch_nav->stop(nav_pid, SIGINT);
+//                nav_pid=-1;
+//            }
+//            catch (std::exception const &exception) {
+//                ROS_WARN("%s", exception.what());
+//            }
+//        }
+//        if(roslaunch_slam==NULL) roslaunch_slam = new ROSLaunchManager;
+//        try {
+//            if(slam_pid==-1 )
+//                slam_pid = roslaunch_slam->start(
+//                    "car_slam", "karto_slam.launch");
+//        }
+//        catch (std::exception const &exception) {
+//            ROS_WARN("%s", exception.what());
+//        }
     }
 }
 

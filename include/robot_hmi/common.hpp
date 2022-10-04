@@ -15,7 +15,6 @@
 #include <QThread>
 
 
-//#include "
 namespace robot_hmi {
 struct road_data{
     int type=0;    // 0 is straight line

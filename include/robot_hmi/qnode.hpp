@@ -48,7 +48,7 @@
 #include "GPS_ksxt.h"   //GPS ksxt报文 自定义消息
 #include "com.h"        // 控制升降机消息类型
 
-#include "ros_launch_manager.hpp"
+//#include "ros_launch_manager.hpp"
 
 /*****************************************************************************
 ** Namespaces
@@ -110,10 +110,13 @@ public slots:
 
 private:
 
-    ROSLaunchManager* roslaunch_slam=NULL;
-    pid_t slam_pid;
-    ROSLaunchManager* roslaunch_nav=NULL;
-    pid_t nav_pid;
+//    ROSLaunchManager* roslaunch_slam=NULL;
+//    pid_t slam_pid;
+//    ROSLaunchManager* roslaunch_nav=NULL;
+//    pid_t nav_pid;
+
+    std::shared_ptr<QProcess> karto_; //
+    std::shared_ptr<QProcess> nav_;   //
 
 	int init_argc;
     char** init_argv;

@@ -15,6 +15,7 @@
 #include <QNetworkInterface>
 #include <QHostAddress>
 #include <QFileDialog>
+#include <QtDebug>
 #include <QGraphicsDropShadowEffect>
 #include <iostream>
 
@@ -139,7 +140,7 @@ void MainWindow::ui_init(){
     ui.save_map->setVisible(!ischecked);
     ui.gmapping_btn->setVisible(!ischecked);
 
-    ui.widget_5->setVisible(false);
+//    ui.widget_5->setVisible(false);
 
 }
 
@@ -339,7 +340,7 @@ void MainWindow::connect_init(){
         qnode.control_elevator(val, ui.tmp_switch->checked());
         ui.elevator_hight->setText("高度 "+QString::number(val)+"mm");
 //        ui.left_motor->setValue()
-         qDebug()<<"升降机高度:" << val << endl;
+        //  qDebug()<< QString("升降机高度:") << val << endl;
     });
     // 温度开关
     connect(ui.tmp_switch, &SwitchButton::statusChanged, [this](bool status){
@@ -398,9 +399,16 @@ void MainWindow::connect_init(){
     connect(ui.local_ip, &QCheckBox::clicked,[this]{
         ui.rosmasteruri->setEnabled(!(ui.local_ip->isChecked()));});
 
+    /*** test ****/
+    launch = new QProcess(this);
     connect(ui.pushButton_3, &QPushButton::clicked, [this]{
+        launch->setProgram("rosrun");   //输入可执行程序
+        launch->setArguments({"rqt_tf_tree","rqt_tf_tree"});    // 输入参数
+        launch->start();    // 执行程序
     });
     connect(ui.pushButton_5, &QPushButton::clicked, [this]{
+        launch->kill(); //
+
     });
 
     connect(ui.map_switch, &SwitchButton::statusChanged, [this]{
