@@ -77,26 +77,6 @@ QNode::~QNode() {
     qDebug() << "karto state " << karto_->state() << endl;
     qDebug() << "nav_ state " << nav_->state() << endl;
 
-//    if(nav_pid!=-1){
-//        try {
-//            roslaunch_nav->stop(nav_pid, SIGINT);
-//            nav_pid=-1;
-//        }
-//        catch (std::exception const &exception) {
-//            ROS_WARN("%s", exception.what());
-//        }
-//    }
-//    if(slam_pid!=-1){
-//        try {
-//            roslaunch_slam->stop(slam_pid, SIGINT);
-//            slam_pid = -1;
-//        }
-//        catch (std::exception const &exception) {
-//            ROS_WARN("%s", exception.what());
-//        }
-//    }
-
-
 	wait();
 }
 
@@ -321,6 +301,7 @@ void QNode::gps_callback(const gps_ksxt_msg::GPS_ksxtConstPtr &msg, int car){
     emit gps_pos(msg->posqual, msg->headingqual,msg->east, msg->north, msg->heading);
 }
 
+uint meet_cnt=0;
 void QNode::laser_callback(const sensor_msgs::LaserScanConstPtr &msg, int car){
     if(this->car != car) return ;
 //    qDebug() << "laser ang:" << msg->angle_increment <<" " << msg->angle_min << " " << msg->angle_max;
@@ -341,11 +322,16 @@ void QNode::laser_callback(const sensor_msgs::LaserScanConstPtr &msg, int car){
             mindis = dis;
     }
     if(mindis<0.5){
-        emit obs_meet(mindis,car);
-        meetObs=true;
+        meet_cnt = fmax(meet_cnt++,1000);
+        if(meet_cnt>100){
+            emit obs_meet(mindis,car);
+            meetObs=true;
+        }
     }
-    else 
+    else {
+        meet_cnt=fmax(meet_cnt--,1);
         meetObs = false;
+    }
         
 //    qDebug()<<"lasr count " << cnt << endl;
 }
@@ -403,6 +389,8 @@ void QNode::odom_callback(const nav_msgs::Odometry::ConstPtr &msg, int car)
 
 void QNode::set_cmd_vel(float linear,float angular)
 {
+    if(nav_->state()==QProcess::Running)
+        return ;    //
     if(meetObs) {
         if(linear>0) linear=0;
     }

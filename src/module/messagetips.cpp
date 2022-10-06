@@ -72,7 +72,7 @@ void MessageTips::paintEvent(QPaintEvent *event)
 
     painter.setPen(QPen(frameColor,frameSize));//窗体边框的颜色和笔画大小
     QRectF rect(0, 0, this->width(), this->height());
-    painter.drawRoundedRect(rect, 15, 15); // round rect
+    painter.drawRoundedRect(rect, 5, 5); // round rect
 }
 
 

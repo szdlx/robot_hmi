@@ -179,7 +179,6 @@ void MainWindow::connect_init(){
     // 速度控制
     connect(omg_joy, &JoyStick::keyControl, this, [this](float v, float ang){
         vel={v*qnode.vmax[qnode.car],ang*qnode.angmax[qnode.car]};
-        // qDebug() << "vel" << vel << endl;
     });
     connect(ui.topics_vel, QOverload<int>::of(&QComboBox::currentIndexChanged), this,[this]{
         if(!qnode.initFlag) return;
@@ -226,13 +225,16 @@ void MainWindow::connect_init(){
             bool res = dir.mkpath(filepath);
            // qDebug() << "新建目录成功" << res;
         }
-        auto save = new QProcess;
-        save->start("bash");
-        QString bash=QString("rosrun map_server map_saver -f "+ filepath+"\n");
-        save->write(bash.toLocal8Bit());
-        MessageTips *mMessageTips = new MessageTips(
+        // 智能指针，独立指针
+        std::unique_ptr<QProcess> save = std::unique_ptr<QProcess>(new QProcess);
+        save->start("rosrun",{"map_server","map_saver","-f",filepath+"/map"});
+        save->waitForFinished();
+        std::unique_ptr<MessageTips> mMessageTips =
+                std::unique_ptr<MessageTips>(
+                    new MessageTips(
                     "slam建图保存在路径:"+filepath //+"\n在菜单中设置保存路径"
-                    ,this);
+                    ,this)
+                    );
         mMessageTips->setStyleSheet("border-radius:5px;text-align:center;background: rgb(211, 215, 207); border: none;");
         mMessageTips->show();
     });
@@ -247,7 +249,6 @@ void MainWindow::connect_init(){
     connect(&qnode, &QNode::position, this, &MainWindow::local_coor);
     connect(&qnode, &QNode::speed_vel, this, &MainWindow::slot_update_dashboard);
     connect(&qnode, &QNode::obs_meet, this, [=](float dis){
-
         if(track_state==1){
             if(isTracking){
                 ui.track_path->setText("继续跟踪");
@@ -573,6 +574,12 @@ void MainWindow::stopTimer(){
                 cnt++;
             }
             //qDebug()<< "save images success" << endl;
+            // auto p=watcher.future.result();// 获取返回值，因为这里是void，所以没有返回值
+            MessageTips *mMessageTips = new MessageTips(
+                        "图片保存在路径:"+filepath //+"\n在菜单中设置保存路径"
+                        ,this);
+            mMessageTips->setStyleSheet("border-radius:5px;text-align:center;background: rgb(211, 215, 207); border: none;");
+            mMessageTips->show();
         };
 
         QEventLoop loop;  // 创建一个事件循环对象
@@ -587,12 +594,7 @@ void MainWindow::stopTimer(){
         loop.exec();
 
         // 退出了事件循环,函数继续往下执行
-        // auto p=watcher.future.result();// 获取返回值，因为这里是void，所以没有返回值
-        MessageTips *mMessageTips = new MessageTips(
-                    "图片保存在路径:"+filepath //+"\n在菜单中设置保存路径"
-                    ,this);
-        mMessageTips->setStyleSheet("border-radius:5px;text-align:center;background: rgb(211, 215, 207); border: none;");
-        mMessageTips->show();
+
         img_state = 0;
     }
 }
@@ -1306,10 +1308,15 @@ void MainWindow::slot_update_power(float value)
     int val=n*100;
     val = val>100?100:val;
     ui.progressBar->setValue(val);
+
     if(val <= 10 && trg){
         trg=false;
-         QMessageBox::warning(NULL, "电量不足", "电量不足，请及时充电！", QMessageBox::Yes , QMessageBox::Yes);
+        MessageTips *mMessageTips = new MessageTips(
+                    "电量不足！请及时充电!"
+                    ,this);
+        mMessageTips->show();
     }
+
     //当电量过低时发出提示
     if (val <= 20 && (volState == 0||volState == 2)) {
         volState = 1;
