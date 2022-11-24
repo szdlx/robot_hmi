@@ -16,6 +16,8 @@
 #include "ui_main_window.h"
 #include "qnode.hpp"
 #include "joystick.h"
+#include "settings.h"
+
 #include <QImage>
 #include <QProcess>
 #include <QComboBox>
@@ -90,8 +92,6 @@ public Q_SLOTS:
     void slot_update_power(float);          // 更新电池电量
     void slot_set_start_pose();
     void slot_car_connect(int car); // select car
-//    void slot_indor_connect();  //
-//    void slot_outdor_connect(); //
 
     void updateImgTopicList();  // refresh img topic list
     void updateMapTopicList();  //
@@ -111,11 +111,14 @@ public Q_SLOTS:
     void set_track_path();
     void local_coor(double x, double y, double yaw);
     void slot_stopTrack();
+    void slot_updateVelTopics();
 
     state<double> getXYT(state<double> xyt);
 
 private:
 	Ui::MainWindowDesign ui;
+    Settings *set=NULL;
+
     QPoint dragPosition;   //鼠标拖动的位置
         enum {nodir,
             top = 0x01,
@@ -133,7 +136,7 @@ private:
     QPoint window_start_point_;
 
     QNode qnode;
-    PurePusuit* track;  // pure pursuit algorithm
+    PurePusuit *track;  // pure pursuit algorithm
 
 //    JoyStick *vel_joy;  //left vel control
     JoyStick *omg_joy;  // right turn control
@@ -174,6 +177,9 @@ private:
     int img_state=0;   // 判断截图是否开始 1 is start, 2 is end
     QVector<QImage> img_vec;   // 批量保存图片
     QTimer *timer;          // record save image timer
+
+    QList<QString> vel_topics;
+    QList<QString> img_topics;
 
     bool fullscreen=false;
     bool fullwindow=false;

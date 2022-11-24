@@ -1,10 +1,10 @@
 # ROS qt 人机交互界面
 
 - 实现图像显示，可以自动刷新图像类型画图
-- 实现多机通讯，点击链接可自动读取rosmaster地址，自动启动roscore并链接rosmaster
 - 实现GPS显示，速度显示，速度控制，不同平台的切换
 - 不同预定轨迹的跟踪（纯跟踪算法）
-- 一键导航、一键Gmapping建图（开发中）
+- Karto建图，保存地图，调用远程主控机程序
+- move base 导航，调用远程主控机程序
 
 ***
 ## 安装依赖
@@ -45,13 +45,19 @@ rosrun robot_hmi robot_hmi
 
 ## 建图与导航
 
-* 点击开始建图，调用gmapping建图
-* 点击导航，调用move base规划路径
+[远程调用主控机运行程序与关闭程序](https://github.com/lrm2017/remoteProgram)
+
+* 点击开始建图，调用远程主控机karto建图
+* 点击导航，远程调用move base规划路径
 * 添加全屏模式，方便对地图操作
 
 ![](https://github.com/lrm2017/robot_hmi/blob/main/%E6%95%88%E6%9E%9C%E5%9B%BE/%E5%85%A8%E5%B1%8F%E5%AF%BC%E8%88%AA.png?raw=true)
 
 
+
+## 改进
+
+由于rviz不支持触屏手势，无法放大与平移，后续加入触屏手势
 
 
 

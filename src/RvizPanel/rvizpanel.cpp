@@ -44,6 +44,7 @@ void RvizPanel::initPanelSlot()
 
     qDebug("IN Panel"); //TODO
 
+//    rviz::view
     // Construct and lay out render panel.
     render_panel = new rviz::RenderPanel();
 //    if(main_layout==NULL)
@@ -68,6 +69,12 @@ void RvizPanel::initPanelSlot()
     manager->removeAllDisplays();
 
 
+    auto md = manager->createDisplay("rviz/Axes","myAxes",true);
+    md->subProp("Reference Frame")->setValue("UGV0/base_footprint");
+    md->subProp("Length")->setValue("0.5");
+    md->subProp("Radius")->setValue("0.05");
+    manager->createDisplay("rviz/Grid","grid",true );
+
     auto viewManager= manager->getViewManager();
     viewManager->setRenderPanel(render_panel);
     viewManager->setCurrentViewControllerType("rviz/Orbit");
@@ -87,10 +94,25 @@ void RvizPanel::deinitPanelSlot()
     if (!inited)
         return;
 
+    if(mapDisplay!=NULL){
+        delete mapDisplay;
+        mapDisplay=NULL;
+    }
+    if(laserScanDisplay!=NULL){
+        delete laserScanDisplay;
+        laserScanDisplay=NULL;
+    }
+
     view = nullptr;
     delete manager;
     delete render_panel;
     delete layout();
+
+
+//    if(robotModelDisplay!=NULL){
+//        delete robotModelDisplay;
+//        robotModelDisplay = NULL;
+//    }
 
     inited = false;
 }
@@ -100,9 +122,6 @@ void RvizPanel::deinitPanelSlot()
 int cnt=0;
 void RvizPanel::mapDisplaySlot(const QVector<std::string>& topic){
     if(topic.empty())return ;
-    if(cnt) return ;
-    cnt++;
-
     for(auto str:topic){
         auto md=manager->createDisplay("rviz/Map","myMap",true);
         ROS_ASSERT(md!=NULL);
@@ -115,7 +134,7 @@ void RvizPanel::mapDisplaySlot(const QVector<std::string>& topic){
             md->subProp("Alpha")->setValue("0.2");
         }else {
             md->subProp("Color Scheme")->setValue("map");
-            md->subProp("Alpha")->setValue("0.9");
+            md->subProp("Alpha")->setValue("0.6");
         }
     }
 
@@ -137,13 +156,9 @@ void RvizPanel::LaserDisplaySlot(const QString& topic){
 }
 
 void RvizPanel::robotModelDisplySlot(){
-    if(robotModelDisplay!=NULL)
-    {
-        delete robotModelDisplay;
-        robotModelDisplay=NULL;
-    }
-    robotModelDisplay=manager->createDisplay("rviz/RobotModel","myRobotModel",true);
-    ROS_ASSERT(robotModelDisplay!=NULL);
+
+    auto rm = manager->createDisplay("rviz/RobotModel","myRobotModel",true) ;
+    ROS_ASSERT(rm!=NULL);
 }
 
 void RvizPanel::Set_Start_Pose()
@@ -211,13 +226,14 @@ void RvizPanel::polyfootprint(const QVector<std::string>& poly){
 void RvizPanel::showPath(const QVector<std::string>& pathList){
 
     if(pathList.empty()) return ;
-    QString color[]={"255;00;255;","255;0;0;","0;0;255","0;255;255","0;0;0"};
+    QString color[]={"255;0;0","107; 64; 191","255;100;255","0;0;255","0;255;255"};
     int cnt=0;
     for (std::string topic : pathList) {
         if(plist.count(topic)) continue;
         auto path=manager->createDisplay("rviz/Path","mypath",true);
         path->subProp("Topic")->setValue(topic.c_str());
         path->subProp("Color")->setValue(color[cnt++]);
+        path->subProp("Line Style")->setValue("Billboards");
         ROS_ASSERT(path!=NULL);
 //        path->subProp("")
     }

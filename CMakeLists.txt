@@ -3,13 +3,40 @@
 ##############################################################################
 
 cmake_minimum_required(VERSION 2.8.0)
-project(robot_hmi)
+
+set(LIB_MAJOR_VERSION "1")
+set(LIB_MINOR_VERSION "1")
+set(LIB_PATCH_VERSION "0")
+set(LIB_VERSION_STRING "${LIB_MAJOR_VERSION}.${LIB_MINOR_VERSION}.${LIB_PATCH_VERSION}")
+
+if (CMAKE_VERSION VERSION_LESS 3.0)
+  PROJECT(robot_hmi CXX)
+  set(PROJECT_VERSION_MAJOR "${LIB_MAJOR_VERSION}")
+  set(PROJECT_VERSION_MINOR "${LIB_MINOR_VERSION}")
+  set(PROJECT_VERSION_PATCH"${LIB_PATCH_VERSION}")
+  set(PROJECT_VERSION "${LIB_VERSION_STRING}")
+else()
+  cmake_policy(SET CMP0048 NEW)
+  PROJECT(robot_hmi VERSION "${LIB_VERSION_STRING}" LANGUAGES CXX)
+endif()
+#project(robot_hmi VERSION 1.1.0 LANGUAGES CXX)
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_PREFIX_PATH /opt/ros/noetic)	# 这是ubuntu20.04  18： /opt/ros/medolic
 #添加c++11的支持
 #set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")   # windows不识别
 set(CMAKE_CXX_STANDARD 17)
+
+
+
+#如果要生成debug版本
+SET(CMAKE_BUILD_TYPE "Debug")
+#如果要生成release版本
+#SET(CMAKE_BUILD_TYPE "Release")
+#添加的支持debug和release支持
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+#SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
 ##############################################################################
 # Catkin
@@ -19,10 +46,16 @@ add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
 # qt_build provides the qt cmake glue, roscpp the comms for a default talker
-find_package(catkin REQUIRED COMPONENTS rviz roscpp rospy roslaunch sensor_msgs
+find_package(catkin REQUIRED COMPONENTS
+    rviz
+    roscpp
+    rospy
+    sensor_msgs
     cv_bridge
     std_msgs
     image_transport
+    actionlib_msgs
+    actionlib
     )
 
 find_package(Eigen3 REQUIRED)

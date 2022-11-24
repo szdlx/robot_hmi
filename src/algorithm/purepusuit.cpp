@@ -16,10 +16,11 @@ PurePusuit::PurePusuit(STATE s)
 //    ReadIni("");
     start = s ;
     traj = new QVector<QVector<double>>(2);
-    ugv.setRange({-1,1},{-1,1}); // 分别设置速度与角速度的范围 m/s rad/s
+    ugv.setRange({-0.5,0.5},{-1,1}); // 分别设置速度与角速度的范围 m/s rad/s
     ugv.lmax = 1;   // m    最大的预瞄距离
     SV = 0.15;   // 面积预瞄阈值
     ST = 0.2;  // 速度的面积预瞄阈值
+
 }
 
 /**
@@ -30,7 +31,8 @@ PurePusuit::PurePusuit(STATE s)
 QPointF PurePusuit::closest(QPointF point){
     double mindis=10000;
     double index=0;
-    for(int i=lastInd; i<traj->at(0).size(); i++){
+    int maxsize=traj->at(0).size();
+    for(int i=lastInd; i<fmin(maxsize,lastInd+maxsize/2); i++){
         double x = traj->at(0)[i];
         double y = traj->at(1)[i];
         double dis =sqrtf((point.x()-x)*(point.x()-x)+(point.y()-y)*(point.y()-y));
@@ -120,6 +122,17 @@ void PurePusuit::setPath(QVector<QVector<double>> path){
     traj->append(path[1]);
 }
 
+std::vector<std::vector<double>> PurePusuit::getPath(){
+    std::vector<std::vector<double>> spath;
+    if(traj->empty())
+        return spath;
+    for (int i = 0; i < traj->size(); ++i) {
+        std::vector<double> vec(traj->at(i).begin(),traj->at(i).end());
+        spath.push_back(vec);
+    }
+    return spath;
+}
+
 /**
  * @brief 对路径预处理，平滑
  * @param path,
@@ -166,7 +179,7 @@ QPair<double, double> PurePusuit::track_path(STATE sv){
         disgoal=sqrtf( (sv.x-gx)*(sv.x-gx)+(sv.y-gy)*(sv.y-gy) );
     }
 
-    if(disgoal < 0.05){
+    if(disgoal < 0.40){
         ref_v = 0;
         reset();
         emit track_finish();
@@ -181,7 +194,7 @@ QPair<double, double> PurePusuit::track_path(STATE sv){
     else
         omega = 0.001;
 //    qDebug() << "v:" << ref_v << "omega:" << omega << endl;
-    omega = fmax(ugv.amin,fmin(ugv.amax,omega));
+    omega = fmax(ugv.amin,fmin(ugv.amax,omega*2));
     return {ref_v, omega};
 }
 

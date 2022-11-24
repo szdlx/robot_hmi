@@ -94,17 +94,21 @@ Q_DECLARE_METATYPE(CPP)
 
 
 struct UGV{
-    double vmin, vmax;  // vel
-    double amin, amax;  // turn vel
+    double vmin=0, vmax=0;  // vel
+    double amin=0, amax=0;  // turn vel
     STATE s;  // 车辆当前状态
     double lmax;    // 最大预瞄距离
     UGV(){
         vmin=-100;vmax=100;amin=-100; amax=100;
         lmax = 100;
     }
-    void setRange(QPair<double, double> vel){
+    void setVelRange(QPair<double, double> vel){
         vmax = vel.first;
         vmin = vel.second;
+    }
+    void setAngRange(QPair<double, double> av){
+        amax = av.first;
+        amin = av.second;
     }
     void setRange(QPair<double, double> vel, QPair<double, double> ang){
         vmin = vel.first;

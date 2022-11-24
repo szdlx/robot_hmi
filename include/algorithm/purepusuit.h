@@ -16,8 +16,17 @@ public:
     QPointF closest(QPointF point);
     QPair<QPointF, QPair<double, double>> cal_point_area(QPointF npos);    // 计算面积
     void setPath(QVector<QVector<double>> path);
-    void setVelRange(double vmin, double vmax);
-    void setAngVelRange(double amin, double amax);
+    std::vector<std::vector<double>> getPath();
+    void setVelRange(double vmin, double vmax){
+        ugv.setVelRange({-vmax,vmax});
+    }
+    void setAngRange(double amin, double amax){
+        ugv.setAngRange({-amax,amax});
+    }
+    void setRange(QPair<float,float> v,QPair<float,float> a){
+        ugv.setRange(v,a);
+    };
+
     void ReadIni(QString path);
     QVector<QVector<double>> SmoothPath(QVector<QVector<double>> path);
     QPair<double, double> track_path(STATE sv);    // 返回控制量，线速度与角速度

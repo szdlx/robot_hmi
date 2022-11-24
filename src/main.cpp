@@ -12,7 +12,7 @@
 #include <QtGui>
 #include <QApplication>
 
-#include "loginwidget.h"
+//#include "loginwidget.h"
 #include "main_window.hpp"
 
 /*****************************************************************************

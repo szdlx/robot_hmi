@@ -134,6 +134,7 @@ ImageView::~ImageView()
 //更改Topic TODO
 void ImageView::setTopic(QString newtopic)
 {
+    qDebug() <<"img topic:"+newtopic;
     if (topic != newtopic) {
         topic = newtopic;
 

@@ -24,7 +24,7 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QSpinBox>
 #include <QDoubleSpinBox>
-#include "../include/robot_hmi/main_window.hpp"
+#include "main_window.hpp"
 #include "messagetips.h"
 
 #include "SwitchButton.h"
@@ -45,10 +45,10 @@ using namespace Qt;
 *****************************************************************************/
 
 MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
-	: QMainWindow(parent)
-	, qnode(argc,argv)
+    : QMainWindow(parent)
+    , qnode(argc,argv)
 {
-	ui.setupUi(this); // Calling this incidentally connects all ui's triggers to on_...() callbacks in this class.
+    ui.setupUi(this); // Calling this incidentally connects all ui's triggers to on_...() callbacks in this class.
     ui_init();
 
 //#ifdef 1
@@ -74,11 +74,9 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
          car0_qMasterIp=ui.rosmasteruri->text();
      });
 
+    track = new PurePusuit();   //
     ReadSettings();
     ui.rosmasteruri->setText(car0_qMasterIp);
-
-    track = new PurePusuit();   //
-
     connect_init(); // initial connect
 
 
@@ -140,29 +138,57 @@ void MainWindow::ui_init(){
     ui.save_map->setVisible(!ischecked);
     ui.gmapping_btn->setVisible(!ischecked);
 
-//    ui.widget_5->setVisible(false);
+    ui.widget_5->setVisible(false);
 
 }
 
 bool showtips=false;
 void MainWindow::connect_init(){
-//    QObject::connect(ui.actionAbout_Qt, SIGNAL(triggered(bool)), qApp, SLOT(aboutQt())); // qApp is a global variable for the application
-//    QObject::connect(ui.image_file, &QAction::triggered,this, [this]{
-//        QString existPath= img_filepath;//==""?"":img_filepath;
-//        img_filepath = QFileDialog::getExistingDirectory(this,tr("截图保存路径"),existPath);
-//    });     // set where to save image
+
+    connect(ui.menu_btn, &QPushButton::clicked, [this]{
+        if (set != NULL) {
+            delete set;
+            set = new Settings();
+            set->setWindowModality(Qt::ApplicationModal);
+            set->show();
+        } else {
+            set = new Settings();
+            set->setWindowModality(Qt::ApplicationModal);
+            set->show();
+        }
+        connect(set, &Settings::velRangChanged, track, [this](float vm, float am){
+            track->setRange({-vm,vm},{-am,am});
+            qDebug() << "set track vel";
+        });
+//        connect(set, &Settings::testEnable, this, [this](bool t){
+//            ui.widget_5->setVisible(t);
+//        });
+    });
+
+
     connect(ui.img_path, &QPushButton::clicked, this,[this]{
         QString existPath= img_filepath;//==""?"":img_filepath;
         img_filepath = QFileDialog::getExistingDirectory(this,tr("截图保存路径"),existPath);
     });
-    connect(ui.map_path, &QPushButton::clicked, this, [this]{
-        QString existPath= map_filepath;//==""?"":img_filepath;
-        map_filepath = QFileDialog::getExistingDirectory(this,tr("slam建图保存路径"),existPath);
-    });
-
+//    connect(ui.map_path, &QPushButton::clicked, this, [this]{
+//        QString existPath= map_filepath;//==""?"":img_filepath;
+//        map_filepath = QFileDialog::getExistingDirectory(this,tr("slam建图保存路径"),existPath);
+//    });
 
     connect(ui.car0_connect, &MyPushButton::doubleClicked,this, [this]{slot_car_connect(1);});
-    connect(ui.car1_connect, &MyPushButton::doubleClicked,this, [this]{slot_car_connect(2);});
+//    connect(ui.car1_connect, &MyPushButton::doubleClicked,this, [this]{slot_car_connect(2);});
+    connect(ui.car0_sw, &SwitchButton::statusChanged, this, [this](bool checked){
+        if(checked){
+            connectState = 0;
+            slot_car_connect(1);
+        } else {
+            qDebug() << "断开rosmaster连接";
+            rpanel->deinitPanelSlot();
+            ui.rviz_img->deinitPanelSlot();
+            qnode.disinit();
+        }
+    });
+
     connect(ui.indoor, &MyPushButton::doubleClicked,this, [this]{
         indoor=true;
         ui.indoor->setChecked(false);
@@ -182,7 +208,8 @@ void MainWindow::connect_init(){
     });
     connect(ui.topics_vel, QOverload<int>::of(&QComboBox::currentIndexChanged), this,[this]{
         if(!qnode.initFlag) return;
-
+        qDebug()<<ui.topics_vel->currentText();
+        qnode.set_cmd_topic(ui.topics_vel->currentText());
     });
     cmd_time = new QTimer(this);
     cmd_time->start(50);    // 控制周期为50 ms
@@ -190,7 +217,7 @@ void MainWindow::connect_init(){
 
     connect(ui.refresh, SIGNAL(clicked(bool)), this, SLOT(updateImgTopicList()));
     connect(ui.refresh_map,&QPushButton::clicked, this, &MainWindow::updateMapTopicList);
-    connect(ui.topics_map, SIGNAL(currentIndexChanged(int)), this, SLOT(onTopicMapChanged(int)) );
+//    connect(ui.topics_map, SIGNAL(currentIndexChanged(int)), this, SLOT(onTopicMapChanged(int)) );
     connect(ui.topics_laser, SIGNAL(currentIndexChanged(int)), this, SLOT(onTopicLaserChanged(int)) );
     connect(ui.topics_img, SIGNAL(currentIndexChanged(int)), this, SLOT(onTopicChanged(int)));
     connect(ui.snapshoot, SIGNAL(pressed()), this, SLOT(saveImage()));  // save image
@@ -210,33 +237,34 @@ void MainWindow::connect_init(){
     });
     connect(ui.save_map, &QPushButton::clicked, this, [this]{
         if(!qnode.initFlag) return ;
-        QDateTime datetime;
-        QString timestr=datetime.currentDateTime().toString("yyyy-MM-dd-HH-mm-ss");
-        QDir dir;
-        if (map_filepath.isEmpty())
-        {
-          map_filepath=dir.currentPath();
-        }
-        auto filepath = QString(map_filepath+"/"+timestr);
-        // 检查目录是否存在，若不存在则新建
+        qnode.exe_robot("savemap",{"rosrun","map_server","map_saver", "-f","/home/lrm/catkin_ws/src/mission_sim_bringup/maps/map"});
+//        QDateTime datetime;
+//        QString timestr=datetime.currentDateTime().toString("yyyy-MM-dd-HH-mm-ss");
+//        QDir dir;
+//        if (map_filepath.isEmpty())
+//        {
+//          map_filepath=dir.currentPath();
+//        }
+//        auto filepath = QString(map_filepath+"/"+timestr);
+//        // 检查目录是否存在，若不存在则新建
 
-        if (!dir.exists(filepath))
-        {
-            bool res = dir.mkpath(filepath);
-           // qDebug() << "新建目录成功" << res;
-        }
-        // 智能指针，独立指针
-        std::unique_ptr<QProcess> save = std::unique_ptr<QProcess>(new QProcess);
-        save->start("rosrun",{"map_server","map_saver","-f",filepath+"/map"});
-        save->waitForFinished();
-        std::unique_ptr<MessageTips> mMessageTips =
-                std::unique_ptr<MessageTips>(
-                    new MessageTips(
-                    "slam建图保存在路径:"+filepath //+"\n在菜单中设置保存路径"
-                    ,this)
-                    );
-        mMessageTips->setStyleSheet("border-radius:5px;text-align:center;background: rgb(211, 215, 207); border: none;");
-        mMessageTips->show();
+//        if (!dir.exists(filepath))
+//        {
+//            bool res = dir.mkpath(filepath);
+//           // qDebug() << "新建目录成功" << res;
+//        }
+//        // 智能指针，独立指针
+//        std::unique_ptr<QProcess> save = std::unique_ptr<QProcess>(new QProcess);
+//        save->start("rosrun",{"map_server","map_saver","-f",filepath+"/map"});
+//        save->waitForFinished();
+//        std::unique_ptr<MessageTips> mMessageTips =
+//                std::unique_ptr<MessageTips>(
+//                    new MessageTips(
+//                    "slam建图保存在路径:"+filepath //+"\n在菜单中设置保存路径"
+//                    ,this)
+//                    );
+//        mMessageTips->setStyleSheet("border-radius:5px;text-align:center;background: rgb(211, 215, 207); border: none;");
+//        mMessageTips->show();
     });
 
 
@@ -246,7 +274,7 @@ void MainWindow::connect_init(){
     connect(&qnode, SIGNAL(connectMasterFailed(int)), this, SLOT(connectFailed(int)));
     connect(&qnode, SIGNAL(power_vel(float)),this,SLOT(slot_update_power(float)));
     connect(&qnode, &QNode::gps_pos, this, &MainWindow::slot_gps);
-    connect(&qnode, &QNode::position, this, &MainWindow::local_coor);
+    connect(&qnode, &QNode::pose2D, this, &MainWindow::local_coor);
     connect(&qnode, &QNode::speed_vel, this, &MainWindow::slot_update_dashboard);
     connect(&qnode, &QNode::obs_meet, this, [=](float dis){
         if(track_state==1){
@@ -254,7 +282,7 @@ void MainWindow::connect_init(){
                 ui.track_path->setText("继续跟踪");
                 ui.track_path->setChecked(false);
                 ui.track_path->setStyleSheet("color:black;");
-                isTracking=false;                
+                isTracking=false;
             }
         }
         if(showtips==0){
@@ -269,6 +297,8 @@ void MainWindow::connect_init(){
         }
         else showtips=true;
     });
+    connect(&qnode, &QNode::vel_list_changed, this, &MainWindow::slot_updateVelTopics);
+
 
     slot_set_param(road.type);
     ui.selected_path->setCurrentIndex(road.type);   //
@@ -288,7 +318,10 @@ void MainWindow::connect_init(){
             ui.track_path->setStyleSheet("color:blue;");
             pos0=posr; isTracking = true;
             plot->plotCar(0,0,0);
-//            qDebug() << QString("pos0: %1,%1,%1").arg(pos0.x).arg(pos0.y).arg(pos0.t);
+            qDebug() << QString("pos0: %1,%1,%1").arg(pos0.x).arg(pos0.y).arg(pos0.t);
+            if(road.type){
+                qnode.sendTrackPath(track->getPath());
+            }
         }
         else if(track_state==1){
             if(!isTracking){
@@ -356,8 +389,8 @@ void MainWindow::connect_init(){
             ui.ang_slide->setValue(0);
             return;
         }
-        ui.ang_val->setText(QString::number(val/100.0,'f',3)+"rad/s");
-        qnode.angmax[qnode.car] =  ui.ang_slide->value()/100.0;
+        ui.ang_val->setText(QString::number(val/200.0,'f',3)+"rad/s");
+        qnode.angmax[qnode.car] =  ui.ang_slide->value()/200.0;
     });
     connect(ui.ang_up, &QPushButton::clicked, [this]{
         ui.ang_slide->setValue(fmin(100,ui.ang_slide->value()+10));});
@@ -369,7 +402,7 @@ void MainWindow::connect_init(){
             ui.vel_slider->setValue(0);
             return;
         }
-        ui.vel_val->setText(QString::number(val/100.0,'f',3)+"cm/s");
+        ui.vel_val->setText(QString::number(val/100.0,'f',3)+"m/s");
         qnode.vmax[qnode.car] =  ui.vel_slider->value()/100.0;
     });
     connect(ui.vel_add, &QPushButton::clicked, [this]{
@@ -422,6 +455,28 @@ void MainWindow::connect_init(){
         qnode.roslaunch(ischecked);
         updateMapTopicList();
     });
+
+    connect(ui.slam, &QPushButton::clicked, [this]{
+//        qnode.robot_control({1,0});
+        QString str = ui.lineEdit->text();
+        auto strlist= str.split(" ");
+        QVector<QString> sv=strlist.toVector();
+        qnode.exe_robot("slam",sv);
+    });
+    connect(ui.nav, &QPushButton::clicked, [this]{
+//        qnode.robot_control({2,0});
+        QString str = ui.lineEdit->text();
+        auto strlist= str.split(" ");
+        QVector<QString> sv=strlist.toVector();
+        qnode.exe_robot("nav",sv);
+    });
+    connect(ui.savemap, &QPushButton::clicked, [this]{
+//        qnode.robot_control({1,1});
+        QString str = ui.lineEdit->text();
+        auto strlist= str.split(" ");
+        QVector<QString> sv=strlist.toVector();
+        qnode.exe_robot("savemap", sv);
+    });
 }
 
 void MainWindow::slot_stopTrack(){
@@ -456,15 +511,9 @@ void MainWindow::slot_gps(int posqual, int headingqual, double x, double y, doub
     }
 
     if(!indoor){    //南方向为0度方位角，顺时针为正
-        yaw += 90;
-        if(yaw>360)    // 改为东方向为x轴
-            yaw=yaw-360;
-        if(yaw>180){
-            yaw = 360-yaw;
-        } else
-            yaw = -yaw;
+        yaw = 90-yaw;
         posr={x, y, yaw*M_PI/180.0}; // 要保存逆时针旋转为正
-        qDebug() << QString("outdoor p: %1,%2,%3").arg(x).arg(y).arg(yaw);
+//        qDebug() << QString("outdoor p: %1,%2,%3").arg(x).arg(y).arg(yaw);
     }
     auto p = getXYT(posr);
     char str[100];
@@ -472,6 +521,52 @@ void MainWindow::slot_gps(int posqual, int headingqual, double x, double y, doub
     ui.label_3->setText(str);
 //    qDebug()<<QString("tmpxyt:%1,%2,%3").arg(p.x).arg(p.y).arg(p.t);
 
+}
+
+void MainWindow::slot_updateVelTopics(){
+    if(qnode.vel_list.isEmpty()) return;
+    auto combox = ui.topics_vel;
+    QString selected= combox->currentText();
+    QList<QString> list;
+    for(int i=0; i<combox->count(); i++)
+        list.append(combox->itemText(i));
+    QList<QString> topics;
+    QMap<std::string,std::string>::Iterator  it;
+    for ( it=qnode.vel_list.begin(); it != qnode.vel_list.end(); it++ ) {
+        topics.append(QString::fromStdString(it.key()));
+    }
+    if(list == topics){ // topics list is same, not need to update
+        return ;
+    }
+
+    combox->clear();
+    for (QList<QString>::const_iterator it = topics.begin(); it != topics.end(); it++)
+    {
+        QString label(*it);
+        if(topics.size()>1 && label==""){
+          continue;
+        }
+      if(selected==""){
+          selected = label;
+      }
+      label.replace(" ", "/");
+//      if(label.contains("UGV"+QString::number(qnode.car)))
+//          selected=label;
+      combox->addItem(label, QVariant(*it));
+    }
+    // restore previous selection
+    int index = combox->findText(selected);
+  //  qDebug() << "combox_index:" <<index << endl;
+    if (index == -1)
+    {
+      // add topic name to list if not yet in
+      QString label(selected);
+      label.replace(" ", "/");
+      combox->addItem(label, QVariant(selected));
+      index = combox->findText(selected);
+    }
+    combox->setCurrentIndex(index);
+    qnode.set_cmd_topic(combox->currentText());
 }
 
 /**
@@ -575,11 +670,7 @@ void MainWindow::stopTimer(){
             }
             //qDebug()<< "save images success" << endl;
             // auto p=watcher.future.result();// 获取返回值，因为这里是void，所以没有返回值
-            MessageTips *mMessageTips = new MessageTips(
-                        "图片保存在路径:"+filepath //+"\n在菜单中设置保存路径"
-                        ,this);
-            mMessageTips->setStyleSheet("border-radius:5px;text-align:center;background: rgb(211, 215, 207); border: none;");
-            mMessageTips->show();
+
         };
 
         QEventLoop loop;  // 创建一个事件循环对象
@@ -593,6 +684,11 @@ void MainWindow::stopTimer(){
         // 函数运行到此后阻塞，进入事件循环,等待退出回调
         loop.exec();
 
+        MessageTips *mMessageTips = new MessageTips(
+                    "图片保存在路径:"+filepath //+"\n在菜单中设置保存路径"
+                    ,this);
+        mMessageTips->setStyleSheet("border-radius:5px;text-align:center;background: rgb(211, 215, 207); border: none;");
+        mMessageTips->show();
         // 退出了事件循环,函数继续往下执行
 
         img_state = 0;
@@ -781,7 +877,7 @@ void MainWindow::saveImage()
         break;
     case 1:
         img_state++;
-        stopTimer();        
+        stopTimer();
         break;
     default:
         //qDebug() << "state error!" << endl;
@@ -804,8 +900,8 @@ void MainWindow::onTopicMapChanged(int index){
 void MainWindow::onTopicLaserChanged(int index){
     if(!qnode.initFlag) return;
    // qDebug() << "set Laser topic \n";
-    QStringList parts = ui.topics_laser->itemData(index).toString().split(" ");
-    QString topic = parts.first();
+    QString topic = ui.topics_laser->itemData(index).toString();
+    topic.replace(" ","/");
     if(!topic.isEmpty())
         rpanel->LaserDisplaySlot(topic);
 }
@@ -813,8 +909,8 @@ void MainWindow::onTopicLaserChanged(int index){
 void MainWindow::onTopicChanged(int index){
     if(!qnode.initFlag) return;
    // qDebug() << "set img topic \n";
-    QStringList parts = ui.topics_img->itemData(index).toString().split(" ");
-    QString topic = parts.first();
+    QString topic = ui.topics_img->itemData(index).toString();
+    topic.replace(" ","/");
     if(!topic.isEmpty())
         ui.rviz_img->setTopicSlot(topic);
 }
@@ -920,7 +1016,7 @@ void MainWindow::road_value_set(){
 }
 
 /**
- * @brief 从里程计的获取局部坐标
+ * @brief base_link 映射到 map的机器人姿态
  * @param x
  * @param y
  * @param yaw
@@ -947,9 +1043,8 @@ void MainWindow::set_track_path(){
 
     if(cnt++>10){ // 0.5秒更新一次消息
         cnt=0;
-        changeComboex(ui.topics_vel,"geometry_msgs/Twist");
-        changeComboex(ui.topics_img,"images");
-//        updateMapTopicList();
+//        changeComboex(ui.topics_vel,"geometry_msgs/Twist");
+        qnode.updateTopics();
     }
 
     if(!isTracking){ // 如果不是跟踪状态，启动遥控模式
@@ -976,7 +1071,7 @@ void MainWindow::set_track_path(){
         slot_stopTrack();
         if(showtips==0){
             MessageTips *mMessageTips = new MessageTips(
-                        "里程计不可用",this);
+                        "请先打开导航地图",this);
             mMessageTips->setStyleSheet("color:red;");
             mMessageTips->setCloseTimeSpeed();
             connect(mMessageTips,&MessageTips::close,[]{
@@ -1017,11 +1112,12 @@ void MainWindow::set_track_path(){
         }
     }
     else if(road.type==1){
-        qDebug()<<"test 1\n";
+//        qDebug()<<"test 1\n";
         plot->plotPath(p.x,p.y);    //
         plot->plotCar(p.x, p.y, p.t);
         auto [vx, va] = track->track_path({p.x, p.y, p.t});
         plot->plotDot(track->lookpoint.x(),track->lookpoint.y());
+        qDebug()<<"s load vel:" << vx << "," <<va;
         qnode.set_cmd_vel(vx, va);  // vel, angv
 
     } else if(road.type==2){
@@ -1039,7 +1135,7 @@ void MainWindow::set_track_path(){
             qDebug()<<"纯跟踪耗时: "<<timedebuge.elapsed()<<"ms";//输出计时
             plot->plotDot(track->lookpoint.x(),track->lookpoint.y());
             qnode.set_cmd_vel(vx, va);  // vel, angv
-//            qDebug()<<"vel:" << vx << " " << va << endl;
+            qDebug()<<"cur vel:" << vx << " " << va << endl;
         }
     }
 
@@ -1050,7 +1146,7 @@ void MainWindow::slot_set_param(int index){
     // qDebug() << "selected path type " << index << endl;
 //    ui.track_path->setVisible(true);
 //    ui.stop_track->setVisible(true);
-    auto layout = ui.param_widget->layout();    
+    auto layout = ui.param_widget->layout();
     for(auto var: pathWidgets){
         // qDebug() << "delete " <<  var->objectName()<< endl;
         layout->removeWidget(var);
@@ -1175,15 +1271,25 @@ T1* MainWindow::set_spinbox( T2 *value){
     return len_spinbox;
 }
 
+
+
 void MainWindow::changeComboex(QComboBox *combox, const QString& messagetype){
     QString selected= combox->currentText();
-    combox->clear();
+    QList<QString> list;
+    for(int i=0; i<combox->count(); i++)
+        list.append(combox->itemText(i));
     QList<QString> topics;
-    if(messagetype=="images")   // 如果是图像，需要特殊处理
+    if(messagetype=="images"){   // 如果是图像，需要特殊处理
         topics = qnode.getImgTopiclist();
-    else
-        topics = qnode.getTopics(messagetype);//
+    }
+    else{
+        topics = qnode.getTopics(messagetype);
+    }
+    if(list == topics){ // topics list is same, not need to update
+        return ;
+    }
 
+    combox->clear();
     for (QList<QString>::const_iterator it = topics.begin(); it != topics.end(); it++)
     {
         QString label(*it);
@@ -1194,8 +1300,8 @@ void MainWindow::changeComboex(QComboBox *combox, const QString& messagetype){
           selected = label;
       }
       label.replace(" ", "/");
-      if(label.contains("UGV"+QString::number(qnode.car)))
-          selected=label;
+//      if(label.contains("UGV"+QString::number(qnode.car)))
+//          selected=label;
       combox->addItem(label, QVariant(*it));
     }
     // restore previous selection
@@ -1215,11 +1321,15 @@ void MainWindow::changeComboex(QComboBox *combox, const QString& messagetype){
 void MainWindow::updateMapTopicList(){
     //    qDebug() << "refresh image message" << endl;
     if(!qnode.initFlag) return; //还未连接，不能刷新
-    changeComboex(ui.topics_map,"nav_msgs/OccupancyGrid");
+//    changeComboex(ui.topics_map,"nav_msgs/OccupancyGrid");
+
     changeComboex(ui.topics_laser,"sensor_msgs/LaserScan");
     rpanel->robotModelDisplySlot();
     rpanel->showPath(qnode.pathList);
     rpanel->polyfootprint(qnode.polyList);
+    if(!qnode.mapList.empty()){
+        rpanel->mapDisplaySlot(qnode.mapList);
+    }
 }
 
 void MainWindow::updateImgTopicList()
@@ -1236,14 +1346,14 @@ void MainWindow::connectSuccess(int car){
 //    qDebug() << "conncet car:" << car << " success!" << endl;
     if( car == 1){
         qnode.set_cmd_vel(0,0);
-        ui.car1_connect->setChecked(false);
-        ui.car1_connect->setStyleSheet("color:black;");
+//        ui.car1_connect->setChecked(false);
+//        ui.car1_connect->setStyleSheet("color:black;");
         ui.car0_connect->setStyleSheet("color:blue;");
     }else {
         qnode.set_cmd_vel(0,0);
         ui.car0_connect->setChecked(false);
         ui.car0_connect->setStyleSheet("color:black;");
-        ui.car1_connect->setStyleSheet("color:blue;");
+//        ui.car1_connect->setStyleSheet("color:blue;");
     }
     rpanel->initPanelSlot();
     updateMapTopicList();
@@ -1253,8 +1363,8 @@ void MainWindow::connectSuccess(int car){
     qnode.car=car-1;
     if( isTracking ) slot_stopTrack();   //
 
-    ui.vel_slider->setValue(qnode.vmax[qnode.car]*100);
-    ui.ang_slide->setValue(qnode.angmax[qnode.car]*100);
+    ui.vel_slider->setValue(qnode.vmax[qnode.car]*200);
+    ui.ang_slide->setValue(qnode.angmax[qnode.car]*200);
 }
 
 void MainWindow::connectFailed(int car){
@@ -1269,6 +1379,9 @@ void MainWindow::connectFailed(int car){
 bool MainWindow::connectMaster(QString master_ip, QString ros_ip, int car) {
     if ( ! qnode.init(master_ip.toStdString(),
                ros_ip.toStdString(), car) ) {   // 如果roscore没打开，通过执行命令打开
+        QMessageBox::warning(NULL, "失败",
+            "连接ROS Master失败！请检查你的网络或连接字符串！",
+            QMessageBox::Yes, QMessageBox::Yes);
         return false;
     }
     else
@@ -1280,6 +1393,9 @@ void MainWindow::slot_car_connect(int car){
     if(connectState==car) return ;    // has connect
     if(ui.local_ip->isChecked()){
         if ( !qnode.init(car) ) {   // 如果roscore没打开，通过执行命令打开
+            QMessageBox::warning(NULL, "失败",
+                "连接ROS Master失败！请检查你的网络或连接字符串！",
+                QMessageBox::Yes, QMessageBox::Yes);
             return ;
         }
         else
@@ -1290,7 +1406,7 @@ void MainWindow::slot_car_connect(int car){
     if( car == 1){
         connectMaster(master, car0_qRosIp, 1);
     }
-    else{        
+    else{
         connectMaster(master, car1_qRosIp, 2);
     }
 }
@@ -1304,16 +1420,16 @@ bool trg=false;
 void MainWindow::slot_update_power(float value)
 {
     ui.label_voltage->setText(QString::number(value/10,'f',2)+"V");
-    double n=(value-210)/(240-210);
-    int val=n*100;
+    double n=(value-200)/(240-200);
+    int val=fmax(0,n*100);
     val = val>100?100:val;
     ui.progressBar->setValue(val);
 
     if(val <= 10 && trg){
         trg=false;
-        MessageTips *mMessageTips = new MessageTips(
+        std::unique_ptr<MessageTips> mMessageTips(new MessageTips(
                     "电量不足！请及时充电!"
-                    ,this);
+                    ,this));
         mMessageTips->show();
     }
 
@@ -1351,9 +1467,9 @@ MainWindow::~MainWindow() {
 *****************************************************************************/
 
 void MainWindow::showNoMasterMessage() {
-	QMessageBox msgBox;
-	msgBox.setText("Couldn't find the ros master.");
-	msgBox.exec();
+    QMessageBox msgBox;
+    msgBox.setText("Couldn't find the ros master.");
+    msgBox.exec();
     close();
 }
 
@@ -1377,6 +1493,13 @@ void MainWindow::ReadSettings() {
     QString ip = settings.value("master_ip").toString();
     if(ip!="") car0_qMasterIp = ip;
     ui.local_ip->setChecked(settings.value("isLocal").toBool());
+
+    QSettings set("menu set", "robot_hmi");
+    float angmax=set.value("angmax").toInt()/100.0;
+//    if(int(angmax)==0) angmax=1;
+    float velmax=set.value("velmax").toInt()/100.0;
+//    if(int(velmax)==0) velmax=1;
+    track->setRange({-velmax,velmax},{-angmax,angmax});
 }
 
 void MainWindow::WriteSettings() {
@@ -1394,8 +1517,8 @@ void MainWindow::WriteSettings() {
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-	WriteSettings();
-	QMainWindow::closeEvent(event);
+    WriteSettings();
+    QMainWindow::closeEvent(event);
 }
 
 }  // namespace robot_hmi

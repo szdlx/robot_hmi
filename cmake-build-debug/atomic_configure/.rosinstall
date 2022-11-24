@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/lrm/catkin_ws/src/robot_hmi/cmake-build-debug/devel/setup.sh

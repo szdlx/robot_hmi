@@ -1,0 +1,8 @@
+prefix=/home/lrm/catkin_ws/src/robot_hmi/cmake-build-debug/devel
+
+Name: robot_hmi
+Description: Description of robot_hmi
+Version: 0.1.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

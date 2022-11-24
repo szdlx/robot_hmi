@@ -60,7 +60,7 @@ protected:
     rviz::ViewController* view;
     rviz::Display *mapDisplay=NULL;
     rviz::Display *laserScanDisplay=NULL;
-    rviz::Display* robotModelDisplay=NULL;
+//    std::unique_ptr<rviz::Display> robotModelDisplay;
     rviz::Display* marker1=NULL;
     rviz::Display* marker2=NULL;
     rviz::Display* goal=NULL;
