@@ -8,8 +8,12 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 #添加c++11的支持
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
-set(CMAKE_PREFIX_PATH /opt/ros/noetic)	# 这是ubuntu20.04  18： /opt/ros/medolic
 
+##############################################################################
+# Catkin
+##############################################################################
+set(CMAKE_PREFIX_PATH "/opt/ros/melodic")
+set(CMAKE_MODULE_PATH "${CMAKE_PREFIX_PATH}/share/catkin/cmake")
 ##############################################################################
 # Catkin
 ##############################################################################
@@ -22,7 +26,8 @@ find_package (catkin REQUIRED COMPONENTS rviz roscpp sensor_msgs
     rviz
     )
 
-find_package(road_recognition_msgs REQUIRED)
+#find_package(road_recognition_msgs REQUIRED)
+
 find_package(Boost REQUIRED)
 
 find_package(Qt5 REQUIRED Core Widgets Multimedia Location QuickWidgets PrintSupport)
@@ -49,7 +54,11 @@ SET(CMAKE_BUILD_TYPE "Debug")
 #添加的支持debug和release支持
 SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
 #SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
-
+##############################################################################
+# 显示header
+##############################################################################
+file(GLOB_RECURSE LibFiles "include/*.hpp" "include/*.h")
+add_custom_target(headers SOURCES ${LibFiles})
 
 
 ##############################################################################

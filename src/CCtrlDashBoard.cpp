@@ -2,7 +2,7 @@
 #include <QPainter>
 #include <QDebug>
 #include <qmath.h>
-
+#include <QPainterPath>
 CCtrlDashBoard::CCtrlDashBoard(QWidget *parent, StyleType type) :
     QWidget(parent),
     m_StyleType(type)

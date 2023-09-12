@@ -1,7 +1,7 @@
 ﻿#pragma execution_character_set("utf-8")
 #include "../include/cyrobot_monitor/SwitchButton.h"
 #include <QPainter>
-
+#include <QPainterPath>
 SwitchButton::SwitchButton(QWidget *parent) : QWidget(parent)
 {
     m_space = 2;
